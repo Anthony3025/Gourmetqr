@@ -1,0 +1,514 @@
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useSocket } from '../hooks/useSocket';
+import './Cocina.css';
+
+// Interfaces
+interface Product {
+  name: string;
+}
+
+interface OrderItem {
+  id: string;
+  quantity: number;
+  specialNotes: string | null;
+  unitPrice: number;
+  options: {
+    name: string;
+    value: string;
+  }[];
+  product: Product;
+}
+
+interface Order {
+  id: string;
+  tableNumber: string;
+  status: string; // pending, preparing, ready, delivered
+  totalAmount: number;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+// Componente para calcular el tiempo transcurrido en tiempo real
+const TimeElapsed: React.FC<{ createdAt: string }> = ({ createdAt }) => {
+  const [elapsed, setElapsed] = useState('');
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const createdTime = new Date(createdAt).getTime();
+      const now = new Date().getTime();
+      const diffMs = now - createdTime;
+
+      const diffSecs = Math.floor(diffMs / 1000);
+      const diffMins = Math.floor(diffSecs / 60);
+
+      if (diffMins === 0) {
+        setElapsed(`${diffSecs} seg`);
+      } else {
+        const remainingSecs = diffSecs % 60;
+        setElapsed(`${diffMins} min ${remainingSecs} seg`);
+      }
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  return <span>⏱️ {elapsed}</span>;
+};
+
+export const Cocina: React.FC = () => {
+  const { restaurantSlug: urlSlug } = useParams<{ restaurantSlug: string }>();
+  const restaurantSlug = urlSlug || 'gourmet-qr';
+  const { socket, isConnected } = useSocket();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
+
+  // Estados de Autenticación por PIN y Marca
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [correctPin, setCorrectPin] = useState('1234'); // Fallback por defecto
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  // Cargar PIN y Logo desde settings del restaurante
+  useEffect(() => {
+    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.kitchenPin) {
+          setCorrectPin(data.kitchenPin);
+        }
+        if (data.logoUrl) {
+          setLogoUrl(data.logoUrl);
+        }
+      })
+      .catch(err => console.error('Error al obtener ajustes de cocina:', err));
+  }, []);
+
+  const handlePinKeyPress = (digit: string) => {
+    setPinError(false);
+    if (pinInput.length < 4) {
+      const newPin = pinInput + digit;
+      setPinInput(newPin);
+      
+      // Auto-validar al llegar a 4 dígitos
+      if (newPin.length === 4) {
+        if (newPin === correctPin) {
+          setIsAuthenticated(true);
+        } else {
+          setPinError(true);
+          // Resetear tras pequeña pausa para que el usuario note el error
+          setTimeout(() => {
+            setPinInput('');
+          }, 600);
+        }
+      }
+    }
+  };
+
+  const handleBackspace = () => {
+    setPinInput(prev => prev.slice(0, -1));
+  };
+
+  // Web Audio API: Sonido sutil de campana programático
+  const playAlertSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      
+      const audioCtx = new AudioContextClass();
+      
+      // Primer tono (agudo)
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, audioCtx.currentTime); // E5 note
+      gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
+      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+      osc1.start(audioCtx.currentTime);
+      osc1.stop(audioCtx.currentTime + 0.8);
+
+      // Segundo tono armonioso con delay
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.12); // A5 note
+      gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.12);
+      gain2.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.17);
+      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+      osc2.start(audioCtx.currentTime + 0.12);
+      osc2.stop(audioCtx.currentTime + 1.0);
+
+    } catch (e) {
+      console.warn('El navegador bloqueó la reproducción automática del audio inicial.', e);
+    }
+  };
+
+  // Cargar órdenes iniciales
+  useEffect(() => {
+    fetch(`http://localhost:3001/api/${restaurantSlug}/orders`)
+      .then(res => res.json())
+      .then((data: Order[]) => {
+        setOrders(data);
+      })
+      .catch(err => {
+        console.error('Error al cargar órdenes:', err);
+      });
+  }, []);
+
+  // Escuchar eventos en tiempo real
+  useEffect(() => {
+    if (!socket) return;
+
+    // Nueva orden recibida
+    const handleNewOrder = (order: Order) => {
+      setOrders(prev => [...prev, order]);
+      setNewOrderIds(prev => [...prev, order.id]);
+      
+      // Reproducir sonido
+      playAlertSound();
+
+      // Quitar el parpadeo automáticamente después de 10 segundos
+      setTimeout(() => {
+        setNewOrderIds(prev => prev.filter(id => id !== order.id));
+      }, 10000);
+    };
+
+    // Orden actualizada por otro proceso
+    const handleOrderUpdated = (updatedOrder: Order) => {
+      if (updatedOrder.status === 'delivered') {
+        // Remover de la lista
+        setOrders(prev => prev.filter(o => o.id !== updatedOrder.id));
+      } else {
+        // Actualizar estado en la lista
+        setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      }
+    };
+
+    const handleSettingsUpdated = (data: any) => {
+      if (data.settings) {
+        if (data.settings.kitchenPin) setCorrectPin(data.settings.kitchenPin);
+        if (data.settings.logoUrl) setLogoUrl(data.settings.logoUrl);
+      }
+    };
+
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_updated', handleOrderUpdated);
+    socket.on('settings_updated', handleSettingsUpdated);
+
+    return () => {
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_updated', handleOrderUpdated);
+      socket.off('settings_updated', handleSettingsUpdated);
+    };
+  }, [socket]);
+
+  // Avanzar estado de la orden
+  const handleAdvanceStatus = (orderId: string, currentStatus: string) => {
+    let nextStatus = '';
+    if (currentStatus === 'pending') nextStatus = 'preparing';
+    else if (currentStatus === 'preparing') nextStatus = 'ready';
+    else if (currentStatus === 'ready') nextStatus = 'delivered';
+
+    // Remover parpadeo si el usuario interactúa con la tarjeta
+    setNewOrderIds(prev => prev.filter(id => id !== orderId));
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: nextStatus })
+    })
+      .then(res => res.json())
+      .then((updatedOrder: Order) => {
+        if (nextStatus === 'delivered') {
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+        } else {
+          setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+        }
+      })
+      .catch(err => {
+        console.error('Error al avanzar el estado de la orden:', err);
+      });
+  };
+
+  // Filtrar órdenes por columnas
+  const pendingOrders = orders.filter(o => o.status === 'pending');
+  const preparingOrders = orders.filter(o => o.status === 'preparing');
+  const readyOrders = orders.filter(o => o.status === 'ready');
+
+  if (!isAuthenticated) {
+    return (
+      <div className="kitchen-pin-overlay">
+        <div className="kitchen-pin-card">
+          <h2 className="kitchen-pin-title">Control de Cocina</h2>
+          <p className="kitchen-pin-subtitle">Ingresa el PIN de 4 dígitos para acceder</p>
+          
+          <div className={`kitchen-pin-dots-row ${pinError ? 'shake-error' : ''}`}>
+            {[0, 1, 2, 3].map((index) => (
+              <span 
+                key={index} 
+                className={`pin-dot ${pinInput.length > index ? 'filled' : ''}`}
+              ></span>
+            ))}
+          </div>
+
+          {pinError && (
+            <p className="pin-error-text">⚠️ PIN Incorrecto. Intenta de nuevo.</p>
+          )}
+
+          <div className="kitchen-keypad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+              <button 
+                key={digit} 
+                className="keypad-btn" 
+                onClick={() => handlePinKeyPress(digit)}
+              >
+                {digit}
+              </button>
+            ))}
+            <button className="keypad-btn backspace-btn" onClick={handleBackspace}>
+              ⌫
+            </button>
+            <button className="keypad-btn" onClick={() => handlePinKeyPress('0')}>
+              0
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+              PIN
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cocina-container">
+      {/* Header */}
+      <header className="cocina-header glass">
+        <div className="cocina-header-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {logoUrl && (
+            <img 
+              src={logoUrl} 
+              alt="Logo" 
+              style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
+            />
+          )}
+          <div className="cocina-logo" style={{ fontSize: '20px' }}>
+            Gourmet Cocina
+          </div>
+        </div>
+        <div className={`status-badge-connection ${isConnected ? 'connected' : 'disconnected'}`}>
+          <span className="pulse-dot"></span>
+          {isConnected ? 'En Línea' : 'Desconectado'}
+        </div>
+      </header>
+
+      {/* Tablero Kanban */}
+      <main className="kanban-board">
+        
+        {/* Columna: Pendientes */}
+        <section className="kanban-column">
+          <header className="column-header">
+            <div className="column-title-group">
+              <span className="column-dot pending"></span>
+              <h3 className="column-title">Pendientes</h3>
+            </div>
+            <span className="column-count-badge">{pendingOrders.length}</span>
+          </header>
+          
+          <div className="column-cards-container">
+            {pendingOrders.map(order => (
+              <div 
+                key={order.id} 
+                className={`order-card ${newOrderIds.includes(order.id) ? 'is-new' : ''}`}
+              >
+                <div className="order-card-header">
+                  <div className="order-card-table">MESA {order.tableNumber}</div>
+                  <div className="order-card-time">
+                    <TimeElapsed createdAt={order.createdAt} />
+                  </div>
+                </div>
+
+                <div className="order-card-items">
+                  {order.items.map(item => (
+                    <div key={item.id} className="order-card-item">
+                      <div className="item-main-row">
+                        <span>
+                          <span className="item-qty">{item.quantity}x</span> 
+                          {item.product.name}
+                        </span>
+                      </div>
+                      
+                      {item.options && item.options.length > 0 && (
+                        <div className="item-options-list">
+                          {item.options.map((opt: any, oIdx: number) => (
+                            <div key={oIdx}>• {opt.name}: {opt.value}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.specialNotes && (
+                        <div className="item-special-notes">
+                          NOTA: {item.specialNotes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-card-footer">
+                  <div className="order-card-total">
+                    Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                  </div>
+                  <button 
+                    className="kanban-action-btn start-prep"
+                    onClick={() => handleAdvanceStatus(order.id, order.status)}
+                  >
+                    Preparar →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Columna: En Preparación */}
+        <section className="kanban-column">
+          <header className="column-header">
+            <div className="column-title-group">
+              <span className="column-dot preparing"></span>
+              <h3 className="column-title">En Preparación</h3>
+            </div>
+            <span className="column-count-badge">{preparingOrders.length}</span>
+          </header>
+
+          <div className="column-cards-container">
+            {preparingOrders.map(order => (
+              <div key={order.id} className="order-card">
+                <div className="order-card-header">
+                  <div className="order-card-table">MESA {order.tableNumber}</div>
+                  <div className="order-card-time">
+                    <TimeElapsed createdAt={order.createdAt} />
+                  </div>
+                </div>
+
+                <div className="order-card-items">
+                  {order.items.map(item => (
+                    <div key={item.id} className="order-card-item">
+                      <div className="item-main-row">
+                        <span>
+                          <span className="item-qty">{item.quantity}x</span> 
+                          {item.product.name}
+                        </span>
+                      </div>
+                      
+                      {item.options && item.options.length > 0 && (
+                        <div className="item-options-list">
+                          {item.options.map((opt: any, oIdx: number) => (
+                            <div key={oIdx}>• {opt.name}: {opt.value}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.specialNotes && (
+                        <div className="item-special-notes">
+                          NOTA: {item.specialNotes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-card-footer">
+                  <div className="order-card-total">
+                    Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                  </div>
+                  <button 
+                    className="kanban-action-btn ready-prep"
+                    onClick={() => handleAdvanceStatus(order.id, order.status)}
+                  >
+                    Listo ✔
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Columna: Listos */}
+        <section className="kanban-column">
+          <header className="column-header">
+            <div className="column-title-group">
+              <span className="column-dot ready"></span>
+              <h3 className="column-title">Listos para Entregar</h3>
+            </div>
+            <span className="column-count-badge">{readyOrders.length}</span>
+          </header>
+
+          <div className="column-cards-container">
+            {readyOrders.map(order => (
+              <div key={order.id} className="order-card" style={{ borderColor: 'var(--success)' }}>
+                <div className="order-card-header">
+                  <div className="order-card-table">MESA {order.tableNumber}</div>
+                  <div className="order-card-time">
+                    <TimeElapsed createdAt={order.createdAt} />
+                  </div>
+                </div>
+
+                <div className="order-card-items">
+                  {order.items.map(item => (
+                    <div key={item.id} className="order-card-item">
+                      <div className="item-main-row">
+                        <span>
+                          <span className="item-qty">{item.quantity}x</span> 
+                          {item.product.name}
+                        </span>
+                      </div>
+                      
+                      {item.options && item.options.length > 0 && (
+                        <div className="item-options-list">
+                          {item.options.map((opt: any, oIdx: number) => (
+                            <div key={oIdx}>• {opt.name}: {opt.value}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.specialNotes && (
+                        <div className="item-special-notes">
+                          NOTA: {item.specialNotes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-card-footer">
+                  <div className="order-card-total">
+                    Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                  </div>
+                  <button 
+                    className="kanban-action-btn deliver-prep"
+                    onClick={() => handleAdvanceStatus(order.id, order.status)}
+                  >
+                    Entregar 🍽️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+      </main>
+    </div>
+  );
+};

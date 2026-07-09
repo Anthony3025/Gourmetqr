@@ -1,0 +1,409 @@
+.cocina-container {
+  min-height: 100vh;
+  background-color: #080a0d;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header de Cocina */
+.cocina-header {
+  padding: 16px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  backdrop-filter: var(--glass-blur);
+}
+
+.cocina-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cocina-logo {
+  font-size: 22px;
+  font-weight: 800;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-badge-connection {
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.status-badge-connection.connected {
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-badge-connection.disconnected {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: pulseBorder 1.5s infinite;
+}
+
+/* Tablero Kanban */
+.kanban-board {
+  display: flex;
+  flex-grow: 1;
+  padding: 24px;
+  gap: 20px;
+  overflow-x: auto;
+}
+
+.kanban-column {
+  flex: 1;
+  min-width: 320px;
+  background: rgba(22, 26, 34, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+}
+
+.column-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.column-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.column-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.column-dot.pending { background-color: var(--text-secondary); }
+.column-dot.preparing { background-color: var(--accent); }
+.column-dot.ready { background-color: var(--success); }
+
+.column-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.column-count-badge {
+  padding: 3px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.column-cards-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+/* Tarjetas de Órdenes */
+.order-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-md);
+}
+
+/* Parpadeo para nuevas órdenes pendientes */
+.order-card.is-new {
+  animation: glowUpdate 1.5s ease infiniteAlternate;
+  border-color: var(--accent);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.order-card-table {
+  font-size: 32px;
+  font-weight: 800;
+  font-family: var(--font-title);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.order-card-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.order-card-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px dashed var(--border-color);
+  border-bottom: 1px dashed var(--border-color);
+  padding: 12px 0;
+}
+
+.order-card-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-main-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.item-qty {
+  color: var(--accent);
+  margin-right: 6px;
+  font-weight: 700;
+}
+
+.item-options-list {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: 24px;
+  margin-top: 2px;
+}
+
+.item-special-notes {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger);
+  background: var(--danger-light);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  margin-top: 6px;
+  margin-left: 24px;
+  display: inline-block;
+}
+
+.order-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-card-total {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.order-card-total span {
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Botones de acción del Kanban */
+.kanban-action-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition-fast);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kanban-action-btn.start-prep {
+  background: var(--accent);
+  color: #fff;
+}
+
+.kanban-action-btn.start-prep:hover {
+  background: var(--accent-hover);
+}
+
+.kanban-action-btn.ready-prep {
+  background: var(--success);
+  color: #fff;
+}
+
+.kanban-action-btn.ready-prep:hover {
+  background: #0ea5e9;
+}
+
+.kanban-action-btn.deliver-prep {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.kanban-action-btn.deliver-prep:hover {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+
+/* Pantalla de Bloqueo por PIN en Cocina */
+.kitchen-pin-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #0f172a 0%, #080a0d 100%);
+  padding: 20px;
+}
+
+.kitchen-pin-card {
+  width: 100%;
+  max-width: 320px;
+  background: rgba(18, 22, 30, 0.85);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  text-align: center;
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-lg);
+  animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kitchen-pin-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  background: rgba(255, 90, 31, 0.1);
+  width: 64px;
+  height: 64px;
+  line-height: 64px;
+  border-radius: 50%;
+  display: inline-block;
+  color: var(--accent);
+}
+
+.kitchen-pin-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.kitchen-pin-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.kitchen-pin-dots-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  transition: all 0.15s ease;
+}
+
+.pin-dot.filled {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.pin-error-text {
+  color: var(--danger);
+  font-size: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  animation: shake 0.3s ease-in-out;
+}
+
+.kitchen-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.keypad-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.keypad-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-secondary);
+}
+
+.keypad-btn:active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.keypad-btn.backspace-btn {
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}

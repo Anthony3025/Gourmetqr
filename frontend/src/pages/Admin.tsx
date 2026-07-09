@@ -1,0 +1,1333 @@
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { useSocket } from '../hooks/useSocket';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
+import './Admin.css';
+
+interface Product {
+  id: string;
+  name: string;
+  price: string;
+  imageUrl: string | null;
+  isActive: boolean;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  products: Product[];
+}
+
+interface Stats {
+  totalSales: number;
+  ordersCount: number;
+  activeTablesCount: number;
+  averageKitchenTime: number;
+}
+
+interface Settings {
+  name: string;
+  logoUrl?: string | null;
+  accentColor: string;
+  currency: string;
+  kitchenPin: string;
+  adminEmail: string;
+}
+
+type Tab = 'overview' | 'menu' | 'tables' | 'settings';
+
+const commonCurrencies = [
+  { label: 'Dólar Estadounidense ($)', symbol: '$' },
+  { label: 'Euro (€)', symbol: '€' },
+  { label: 'Peso Mexicano ($)', symbol: '$' },
+  { label: 'Peso Colombiano ($)', symbol: '$' },
+  { label: 'Peso Chileno ($)', symbol: '$' },
+  { label: 'Sol Peruano (S/)', symbol: 'S/' },
+  { label: 'Bolívar Venezolano (Bs.)', symbol: 'Bs.' },
+];
+
+export default function Admin() {
+  const { socket } = useSocket();
+  const { restaurantSlug: urlSlug } = useParams<{ restaurantSlug: string }>();
+  const restaurantSlug = urlSlug || 'gourmet-qr';
+
+  // Autenticación por Correo y Contraseña
+  const [token, setToken] = useState<string>(localStorage.getItem('admin_token') || '');
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('admin_token'));
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [loadingAuth, setLoadingAuth] = useState(false);
+
+  // Navegación de Pestañas (Sidebar)
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
+
+  // Estados Operativos
+  const [menu, setMenu] = useState<Category[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalSales: 0,
+    ordersCount: 0,
+    activeTablesCount: 0,
+    averageKitchenTime: 0
+  });
+  
+  // Ajustes de Marca
+  const [settings, setSettings] = useState<Settings>({
+    name: 'Gourmet QR',
+    accentColor: '#ff5a1f',
+    currency: '$',
+    kitchenPin: '1234',
+    adminEmail: 'admin@gourmet.com'
+  });
+  const [newPassword, setNewPassword] = useState('');
+  const [selectedCurrencyOption, setSelectedCurrencyOption] = useState('$');
+  const [customCurrencySymbol, setCustomCurrencySymbol] = useState('');
+  const [logoBase64, setLogoBase64] = useState('');
+
+  // Generador de QR
+  const [mesaInput, setMesaInput] = useState('1');
+  const [generatedQrUrl, setGeneratedQrUrl] = useState('');
+  const [qrMode, setQrMode] = useState<'individual' | 'batch'>('individual');
+  const [rangeStart, setRangeStart] = useState('1');
+  const [rangeEnd, setRangeEnd] = useState('10');
+  const [bulkQrs, setBulkQrs] = useState<{ mesa: string; url: string; qrUrl: string }[]>([]);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+
+  // Estados para creación de Categorías y Platos
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showAddProductForm, setShowAddProductForm] = useState(false);
+  const [targetCategoryId, setTargetCategoryId] = useState('');
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductDesc, setNewProductDesc] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductTags, setNewProductTags] = useState('');
+  const [newProductImageBase64, setNewProductImageBase64] = useState('');
+
+  // Carga inicial de settings básicos
+  useEffect(() => {
+    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`)
+      .then(res => res.json())
+      .then((data: Settings) => {
+        setSettings(data);
+        const matching = commonCurrencies.find(c => c.symbol === data.currency);
+        if (matching) {
+          setSelectedCurrencyOption(data.currency);
+        } else {
+          setSelectedCurrencyOption('custom');
+          setCustomCurrencySymbol(data.currency || '');
+        }
+      })
+      .catch(err => console.error('Error al obtener ajustes:', err));
+  }, []);
+
+  // Carga de datos operativos al autenticar
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadDashboardData();
+    }
+  }, [isAuthenticated]);
+
+  const loadDashboardData = () => {
+    // Cargar menú (público)
+    fetch(`http://localhost:3001/api/${restaurantSlug}/menu`)
+      .then(res => res.json())
+      .then((data: Category[]) => setMenu(data))
+      .catch(err => console.error('Error al cargar menú en admin:', err));
+
+    // Cargar estadísticas (protegido por JWT)
+    const activeToken = token || localStorage.getItem('admin_token');
+    if (!activeToken) return;
+    fetch(`http://localhost:3001/api/${restaurantSlug}/stats`, {
+      headers: { 'Authorization': `Bearer ${activeToken}` }
+    })
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+          throw new Error('Sesión expirada');
+        }
+        return res.json();
+      })
+      .then((data: Stats) => setStats(data))
+      .catch(err => console.error('Error al cargar estadísticas:', err));
+  };
+
+  // Escuchar WebSockets
+  useEffect(() => {
+    if (!socket || !isAuthenticated) return;
+
+    const handleRefreshStats = () => {
+      const activeToken = token || localStorage.getItem('admin_token');
+      if (!activeToken) return;
+      fetch(`http://localhost:3001/api/${restaurantSlug}/stats`, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      })
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            handleLogout();
+          }
+          return res.json();
+        })
+        .then((data: Stats) => setStats(data))
+        .catch(err => console.error('Error al actualizar estadísticas:', err));
+    };
+
+    socket.on('new_order', handleRefreshStats);
+    socket.on('order_updated', handleRefreshStats);
+
+    return () => {
+      socket.off('new_order', handleRefreshStats);
+      socket.off('order_updated', handleRefreshStats);
+    };
+  }, [socket, isAuthenticated]);
+
+  // Manejar Formulario de Login
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingAuth(true);
+    setAuthError('');
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailInput, password: passwordInput })
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Credenciales incorrectas');
+        }
+        return res.json();
+      })
+      .then((data: { token: string }) => {
+        localStorage.setItem('admin_token', data.token);
+        setToken(data.token);
+        setIsAuthenticated(true);
+        setAuthError('');
+      })
+      .catch(err => {
+        setAuthError(err.message || 'Error al iniciar sesión');
+      })
+      .finally(() => {
+        setLoadingAuth(false);
+      });
+  };
+
+  // Subir Logo (base64)
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoBase64(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Guardar Ajustes de Branding y Credenciales
+  const handleSaveSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const payload = {
+      ...settings,
+      logoBase64: logoBase64 || undefined,
+      adminPassword: newPassword // Se envía solo si el usuario completó el campo
+    };
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then((updated: Settings) => {
+        setSettings(updated);
+        setLogoBase64('');
+        setNewPassword(''); // Limpiar campo de nueva contraseña
+        document.documentElement.style.setProperty('--accent', updated.accentColor);
+        alert('Ajustes y credenciales guardados correctamente.');
+      })
+      .catch(err => {
+        console.error('Error al guardar ajustes:', err);
+        alert('Error al guardar ajustes.');
+      });
+  };
+
+  // Cambiar disponibilidad (Stock Switch)
+  const handleToggleProductStock = (productId: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus;
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/products/${productId}/availability`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ isActive: nextStatus })
+    })
+      .then(res => res.json())
+      .then(() => {
+        setMenu(prevMenu =>
+          prevMenu.map(cat => ({
+            ...cat,
+            products: cat.products.map(p =>
+              p.id === productId ? { ...p, isActive: nextStatus } : p
+            )
+          }))
+        );
+      })
+      .catch(err => console.error('Error al cambiar stock:', err));
+  };
+
+  // Guardar precio del producto
+  const handleSaveProductPrice = (productId: string, newPrice: string) => {
+    fetch(`http://localhost:3001/api/${restaurantSlug}/products/${productId}/price`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ price: parseFloat(newPrice) })
+    })
+      .then(res => res.json())
+      .then(() => {
+        setMenu(prevMenu =>
+          prevMenu.map(cat => ({
+            ...cat,
+            products: cat.products.map(p =>
+              p.id === productId ? { ...p, price: newPrice } : p
+            )
+          }))
+        );
+      })
+      .catch(err => console.error('Error al guardar precio:', err));
+  };
+
+  // A. Crear categoría
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/categories`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ name: newCategoryName })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error al crear categoría');
+        return res.json();
+      })
+      .then((newCat) => {
+        setMenu(prev => [...prev, { ...newCat, products: [] }]);
+        setNewCategoryName('');
+      })
+      .catch(err => {
+        console.error(err);
+        alert('No se pudo crear la categoría.');
+      });
+  };
+
+  // B. Eliminar categoría
+  const handleDeleteCategory = (categoryId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta categoría y todos sus platos asociados?')) return;
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/categories/${categoryId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error al eliminar categoría');
+        return res.json();
+      })
+      .then(() => {
+        setMenu(prev => prev.filter(c => c.id !== categoryId));
+      })
+      .catch(err => {
+        console.error(err);
+        alert('No se pudo eliminar la categoría.');
+      });
+  };
+
+  // C. Subir imagen (base64)
+  const handleProductFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewProductImageBase64(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // D. Crear producto
+  const handleAddProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProductName.trim() || !newProductPrice || !targetCategoryId) return;
+
+    const tagsArr = newProductTags.split(',').map(t => t.trim()).filter(Boolean);
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/products`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        name: newProductName,
+        description: newProductDesc,
+        price: parseFloat(newProductPrice),
+        categoryId: targetCategoryId,
+        tags: tagsArr,
+        imageBase64: newProductImageBase64
+      })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error al crear el producto');
+        return res.json();
+      })
+      .then((newProd) => {
+        setMenu(prev => prev.map(c => {
+          if (c.id === targetCategoryId) {
+            return {
+              ...c,
+              products: [...c.products, newProd]
+            };
+          }
+          return c;
+        }));
+        
+        // Limpiar campos
+        setNewProductName('');
+        setNewProductDesc('');
+        setNewProductPrice('');
+        setNewProductTags('');
+        setNewProductImageBase64('');
+        setShowAddProductForm(false);
+      })
+      .catch(err => {
+        console.error(err);
+        alert('No se pudo añadir el plato.');
+      });
+  };
+
+  // E. Eliminar producto
+  const handleDeleteProduct = (productId: string, categoryId: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este plato?')) return;
+
+    fetch(`http://localhost:3001/api/${restaurantSlug}/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error al eliminar producto');
+        return res.json();
+      })
+      .then(() => {
+        setMenu(prev => prev.map(c => {
+          if (c.id === categoryId) {
+            return {
+              ...c,
+              products: c.products.filter(p => p.id !== productId)
+            };
+          }
+          return c;
+        }));
+      })
+      .catch(err => {
+        console.error(err);
+        alert('No se pudo eliminar el plato.');
+      });
+  };
+
+  // Generar QR Individual reactivamente al cambiar mesaInput o qrMode
+  useEffect(() => {
+    if (qrMode === 'individual' && mesaInput.trim() !== '') {
+      const host = window.location.host;
+      const protocol = window.location.protocol;
+      const urlMesa = `${protocol}//${host}/menu?mesa=${mesaInput}&restaurant=${restaurantSlug}`;
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(urlMesa)}`;
+      setGeneratedQrUrl(qrApiUrl);
+    } else if (mesaInput.trim() === '') {
+      setGeneratedQrUrl('');
+    }
+  }, [mesaInput, qrMode]);
+
+  // Generar Lote de QRs reactivamente al cambiar rangeStart, rangeEnd o qrMode
+  useEffect(() => {
+    if (qrMode === 'batch') {
+      const host = window.location.host;
+      const protocol = window.location.protocol;
+      const start = parseInt(rangeStart);
+      const end = parseInt(rangeEnd);
+      
+      if (isNaN(start) || isNaN(end) || start > end || (end - start) > 50 || start < 1) {
+        setBulkQrs([]);
+        return;
+      }
+
+      const generatedList = [];
+      for (let i = start; i <= end; i++) {
+        const mesaStr = String(i);
+        const urlMesa = `${protocol}//${host}/menu?mesa=${mesaStr}&restaurant=${restaurantSlug}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(urlMesa)}`;
+        generatedList.push({
+          mesa: mesaStr,
+          url: urlMesa,
+          qrUrl: qrApiUrl
+        });
+      }
+      setBulkQrs(generatedList);
+    }
+  }, [rangeStart, rangeEnd, qrMode]);
+
+  // Descargar PDF del QR Individual mediante html2pdf.js en el cliente
+  const downloadIndividualQrPdf = () => {
+    const element = document.getElementById('qr-card-individual');
+    if (!element) {
+      alert('No se encontró el elemento a imprimir.');
+      return;
+    }
+    const opt = {
+      margin:       0,
+      filename:     `QR_Mesa_${mesaInput}_${settings.name.replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 1.0 },
+      html2canvas:  { scale: 3, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: [90, 130] as [number, number], orientation: 'portrait' as const }
+    };
+    setLoadingPdf(true);
+    html2pdf().set(opt).from(element).save()
+      .then(() => setLoadingPdf(false))
+      .catch(() => setLoadingPdf(false));
+  };
+
+  // Descargar PDF por Lote mediante html2pdf.js en el cliente (4 por página Carta)
+  const downloadBulkQrPdf = () => {
+    const element = document.getElementById('qr-cards-batch');
+    if (!element) {
+      alert('No se encontraron los elementos a imprimir.');
+      return;
+    }
+    const opt = {
+      margin:       [8, 12, 8, 12] as [number, number, number, number],
+      filename:     `QRs_Lote_${rangeStart}_al_${rangeEnd}_${settings.name.replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 1.0 },
+      html2canvas:  { scale: 3, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' as const }
+    };
+    setLoadingPdf(true);
+    html2pdf().set(opt).from(element).save()
+      .then(() => setLoadingPdf(false))
+      .catch(() => setLoadingPdf(false));
+  };
+
+  // Cerrar Sesión
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    setToken('');
+    setIsAuthenticated(false);
+    setEmailInput('');
+    setPasswordInput('');
+    setActiveTab('overview');
+  };
+
+  // PANTALLA 1: Login de Correo y Contraseña
+  if (!isAuthenticated) {
+    return (
+      <div className="login-overlay">
+        <div className="login-card">
+          <h2 className="waiting-title">Administración</h2>
+          <p className="waiting-subtitle" style={{ marginBottom: '20px' }}>Inicia sesión para gestionar tu restaurante</p>
+          
+          <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+            <input
+              type="email"
+              className="form-input-admin"
+              placeholder="Correo electrónico"
+              value={emailInput}
+              onChange={e => setEmailInput(e.target.value)}
+              required
+            />
+            
+            <input
+              type="password"
+              className="form-input-admin"
+              placeholder="Contraseña"
+              value={passwordInput}
+              onChange={e => setPasswordInput(e.target.value)}
+              required
+            />
+
+            {authError && (
+              <p style={{ color: 'var(--danger)', fontSize: '13px', margin: '4px 0' }}>
+                {authError}
+              </p>
+            )}
+
+            <button 
+              type="submit" 
+              className="btn-admin-action" 
+              style={{ width: '100%', marginTop: '10px' }}
+              disabled={loadingAuth}
+            >
+              {loadingAuth ? 'Verificando...' : 'Iniciar Sesión'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // PANTALLA 2: Dashboard Principal Rediseñado
+  return (
+    <div className="admin-container animate-fade-in" style={{ display: 'flex', flexDirection: 'row', minHeight: '100vh' }}>
+      
+      {/* Sidebar Lateral Izquierdo */}
+      <aside style={{
+        width: '240px',
+        background: 'var(--bg-secondary)',
+        borderRight: '1px solid var(--border-color)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '24px 16px',
+        flexShrink: 0
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+            {settings.logoUrl ? (
+              <img src={settings.logoUrl} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+            ) : (
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+                {settings.name ? settings.name[0] : 'G'}
+              </div>
+            )}
+            <div>
+              <h2 className="admin-logo" style={{ fontSize: '18px', color: 'var(--text-primary)', margin: 0 }}>{settings.name}</h2>
+              <span className="admin-badge" style={{ marginTop: '4px', display: 'inline-block' }}>Administrador</span>
+            </div>
+          </div>
+
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`btn-admin-secondary ${activeTab === 'overview' ? 'active-tab' : ''}`}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: activeTab === 'overview' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'overview' ? 'var(--accent)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'overview' ? '700' : '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Resumen Operativo
+            </button>
+
+            <button
+              onClick={() => setActiveTab('menu')}
+              className={`btn-admin-secondary ${activeTab === 'menu' ? 'active-tab' : ''}`}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: activeTab === 'menu' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'menu' ? 'var(--accent)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'menu' ? '700' : '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Menú e Inventario
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tables')}
+              className={`btn-admin-secondary ${activeTab === 'tables' ? 'active-tab' : ''}`}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: activeTab === 'tables' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'tables' ? 'var(--accent)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'tables' ? '700' : '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Mesas y QRs
+            </button>
+
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`btn-admin-secondary ${activeTab === 'settings' ? 'active-tab' : ''}`}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: activeTab === 'settings' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'settings' ? 'var(--accent)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'settings' ? '700' : '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Ajustes de Marca
+            </button>
+          </nav>
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="btn-admin-secondary"
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+        >
+          Cerrar Sesión
+        </button>
+      </aside>
+
+      {/* Área de Contenido Principal */}
+      <main style={{ flexGrow: 1, padding: '40px', overflowY: 'auto', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+        
+        {/* PESTAÑA 1: Overview */}
+        {activeTab === 'overview' && (
+          <div className="admin-card animate-fade-in" style={{ gap: '28px' }}>
+            <div className="card-header-admin">
+              <h3 className="card-title-admin">Resumen del Día</h3>
+            </div>
+            
+            <div className="kpi-grid">
+              <div className="kpi-card" style={{ padding: '24px' }}>
+                <span className="kpi-label">Ventas Hoy</span>
+                <div className="kpi-value" style={{ fontSize: '32px' }}>{settings.currency}{Number(stats.totalSales || 0).toFixed(2)}</div>
+              </div>
+              <div className="kpi-card" style={{ padding: '24px' }}>
+                <span className="kpi-label">Órdenes Recibidas</span>
+                <div className="kpi-value" style={{ fontSize: '32px' }}>{stats.ordersCount}</div>
+              </div>
+              <div className="kpi-card" style={{ padding: '24px' }}>
+                <span className="kpi-label">Mesas Activas</span>
+                <div className="kpi-value" style={{ fontSize: '32px' }}>{stats.activeTablesCount}</div>
+              </div>
+              <div className="kpi-card" style={{ padding: '24px' }}>
+                <span className="kpi-label">Demora Cocina</span>
+                <div className="kpi-value" style={{ fontSize: '32px' }}>{stats.averageKitchenTime} min</div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '20px', textAlign: 'center' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                📡 El panel está escuchando la cocina. Las métricas se actualizan solas cada vez que se prepara o entrega un plato.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 2: Menú e Inventario (Stock & Precios) */}
+        {activeTab === 'menu' && (
+          <div className="admin-card animate-fade-in" style={{ gap: '24px' }}>
+            <div className="card-header-admin" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <h3 className="card-title-admin">Gestión de Menú e Inventario</h3>
+              
+              {/* Formulario rápido para nueva categoría */}
+              <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Nueva categoría..."
+                  className="form-input-admin"
+                  style={{ padding: '8px 12px', fontSize: '13px' }}
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  required
+                />
+                <button type="submit" className="btn-admin-action" style={{ padding: '8px 14px', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                  + Crear Categoría
+                </button>
+              </form>
+            </div>
+
+            {menu.map(cat => (
+              <div key={cat.id} className="menu-category-group" style={{ marginTop: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h4 className="category-header-admin" style={{ margin: 0 }}>{cat.name}</h4>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => {
+                        setTargetCategoryId(cat.id);
+                        setShowAddProductForm(true);
+                      }}
+                      className="btn-admin-secondary"
+                      style={{ padding: '6px 12px', fontSize: '12px', borderColor: 'var(--accent)', color: 'var(--accent)', background: 'transparent' }}
+                    >
+                      + Añadir Plato
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="btn-admin-secondary"
+                      style={{ padding: '6px 8px', fontSize: '12px', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                      title="Eliminar Categoría"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                {/* Formulario condicional para añadir producto en esta categoría */}
+                {showAddProductForm && targetCategoryId === cat.id && (
+                  <form onSubmit={handleAddProduct} style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '20px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h5 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--accent)' }}>Añadir Plato a {cat.name}</h5>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                      <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                        <label style={{ fontSize: '12px' }}>Nombre del Plato *</label>
+                        <input
+                          type="text"
+                          className="form-input-admin"
+                          style={{ width: '100%', padding: '8px 12px' }}
+                          placeholder="Ej. Tacos de Asada"
+                          value={newProductName}
+                          onChange={e => setNewProductName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                        <label style={{ fontSize: '12px' }}>Precio ({settings.currency}) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="form-input-admin"
+                          style={{ width: '100%', padding: '8px 12px' }}
+                          placeholder="0.00"
+                          value={newProductPrice}
+                          onChange={e => setNewProductPrice(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                      <label style={{ fontSize: '12px' }}>Descripción</label>
+                      <textarea
+                        className="form-input-admin"
+                        style={{ width: '100%', padding: '8px 12px', minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                        placeholder="Ingredientes o detalles del plato..."
+                        value={newProductDesc}
+                        onChange={e => setNewProductDesc(e.target.value)}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+                      <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                        <label style={{ fontSize: '12px' }}>Etiquetas (Separadas por coma)</label>
+                        <input
+                          type="text"
+                          className="form-input-admin"
+                          style={{ width: '100%', padding: '8px 12px' }}
+                          placeholder="Ej. Picante, Popular, Vegano"
+                          value={newProductTags}
+                          onChange={e => setNewProductTags(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                        <label style={{ fontSize: '12px' }}>Imagen del Plato</label>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleProductFileChange}
+                            style={{ display: 'none' }}
+                            id="file-upload-input"
+                          />
+                          <label
+                            htmlFor="file-upload-input"
+                            className="btn-admin-secondary"
+                            style={{ padding: '8px 12px', fontSize: '12px', cursor: 'pointer', display: 'inline-block', width: '100%', textAlign: 'center', whiteSpace: 'nowrap' }}
+                          >
+                            📷 {newProductImageBase64 ? 'Imagen lista' : 'Subir Imagen'}
+                          </label>
+                          {newProductImageBase64 && (
+                            <button
+                              type="button"
+                              onClick={() => setNewProductImageBase64('')}
+                              className="btn-admin-secondary"
+                              style={{ color: 'var(--danger)', padding: '8px 10px', fontSize: '12px' }}
+                              title="Remover imagen"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddProductForm(false);
+                          setNewProductImageBase64('');
+                        }}
+                        className="btn-admin-secondary"
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn-admin-action"
+                        style={{ padding: '8px 20px', fontSize: '13px' }}
+                      >
+                        Añadir Plato
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="menu-list-admin" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {cat.products.map(product => (
+                    <div key={product.id} className="menu-item-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {product.imageUrl && (
+                          <img 
+                            src={product.imageUrl} 
+                            alt={product.name} 
+                            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                          />
+                        )}
+                        <div className="item-meta-admin">
+                          <span className="item-name-admin" style={{ display: 'block', fontWeight: '600' }}>{product.name}</span>
+                          <span className="item-price-admin-text" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            Actual: {settings.currency}{Number(product.price).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="item-controls-admin" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {/* Editar Precio Rápido */}
+                        <div className="price-input-wrapper">
+                          <span className="price-input-symbol">{settings.currency}</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="price-input-field"
+                            defaultValue={Number(product.price).toFixed(2)}
+                            onBlur={(e) => handleSaveProductPrice(product.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                (e.target as HTMLInputElement).blur();
+                              }
+                            }}
+                          />
+                        </div>
+
+                        {/* Switch de Stock (iOS Style) */}
+                        <div className="switch-wrapper">
+                          <label className="switch">
+                            <input
+                              type="checkbox"
+                              checked={product.isActive}
+                              onChange={() => handleToggleProductStock(product.id, product.isActive)}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                          <span style={{ minWidth: '60px', opacity: product.isActive ? 1 : 0.4, fontSize: '13px' }}>
+                            {product.isActive ? 'Disponible' : 'Agotado'}
+                          </span>
+                        </div>
+
+                        {/* Eliminar Producto */}
+                        <button
+                          onClick={() => handleDeleteProduct(product.id, cat.id)}
+                          className="btn-admin-secondary"
+                          style={{ padding: '6px 8px', fontSize: '12px', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                          title="Eliminar Plato"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {cat.products.length === 0 && (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic', padding: '10px 0' }}>
+                      No hay platos en esta categoría todavía.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* PESTAÑA 3: Mesas y QRs */}
+        {activeTab === 'tables' && (
+          <div className="admin-card animate-fade-in" style={{ maxWidth: '800px' }}>
+            <div className="card-header-admin" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="card-title-admin">Generar Códigos QR de Mesa</h3>
+              {/* Selector de modo */}
+              <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: 'var(--radius-sm)' }}>
+                <button
+                  onClick={() => setQrMode('individual')}
+                  className={`btn-admin-secondary ${qrMode === 'individual' ? 'active-tab' : ''}`}
+                  style={{ border: 'none', padding: '6px 12px', fontSize: '12px', borderRadius: '4px', cursor: 'pointer', background: qrMode === 'individual' ? 'var(--accent-light)' : 'transparent', color: qrMode === 'individual' ? 'var(--accent)' : 'var(--text-secondary)' }}
+                >
+                  Individual
+                </button>
+                <button
+                  onClick={() => setQrMode('batch')}
+                  className={`btn-admin-secondary ${qrMode === 'batch' ? 'active-tab' : ''}`}
+                  style={{ border: 'none', padding: '6px 12px', fontSize: '12px', borderRadius: '4px', cursor: 'pointer', background: qrMode === 'batch' ? 'var(--accent-light)' : 'transparent', color: qrMode === 'batch' ? 'var(--accent)' : 'var(--text-secondary)' }}
+                >
+                  Por Lote (Varios)
+                </button>
+              </div>
+            </div>
+            
+            <div className="qr-generator-section">
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'left', marginBottom: '16px' }}>
+                Cada mesa necesita un código QR único pegado físicamente. Elige el modo para generar códigos únicos o un lote completo para imprimir de una sola vez.
+              </p>
+
+              {qrMode === 'individual' ? (
+                /* Modo Individual */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                    <label>Número de Mesa</label>
+                    <input
+                      type="number"
+                      className="form-input-admin"
+                      min="1"
+                      value={mesaInput}
+                      onChange={e => setMesaInput(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+
+                  {generatedQrUrl && (
+                    <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                      {/* Tarjeta de impresión física (90x130 mm) */}
+                      <div id="qr-card-individual" style={{ 
+                        background: '#ffffff', 
+                        padding: '20px', 
+                        borderRadius: '8px', 
+                        border: '1px solid #e2e8f0',
+                        width: '90mm',
+                        height: '130mm',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#0f172a',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}>
+                        <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                          {settings.name}
+                        </div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '12px' }}>
+                          MESA {mesaInput}
+                        </div>
+                        <div style={{ padding: '8px', background: '#f8fafc', borderRadius: '4px', border: '1px solid #f1f5f9', display: 'inline-block', marginBottom: '10px' }}>
+                          <img src={generatedQrUrl} alt={`QR Mesa ${mesaInput}`} style={{ width: '150px', height: '150px', display: 'block' }} />
+                        </div>
+                        <div style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                          Escanea para ordenar
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={downloadIndividualQrPdf} 
+                        className="btn-admin-action" 
+                        disabled={loadingPdf}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      >
+                        {loadingPdf ? 'Generando PDF...' : '📥 Descargar PDF'}
+                      </button>
+
+                      <a
+                        href={generatedQrUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-admin-secondary"
+                        style={{ display: 'block', textDecoration: 'none', textAlign: 'center', width: '100%', padding: '12px' }}
+                      >
+                        Ver Imagen en Alta Resolución ↗
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Modo Lote */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                      <label>Mesa Inicial</label>
+                      <input
+                        type="number"
+                        className="form-input-admin"
+                        min="1"
+                        value={rangeStart}
+                        onChange={e => setRangeStart(e.target.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                      <label>Mesa Final</label>
+                      <input
+                        type="number"
+                        className="form-input-admin"
+                        min="1"
+                        value={rangeEnd}
+                        onChange={e => setRangeEnd(e.target.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+
+                  {bulkQrs.length > 0 && (
+                    <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: '700' }}>QRs Generados ({bulkQrs.length})</h4>
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={downloadBulkQrPdf}
+                            className="btn-admin-action"
+                            disabled={loadingPdf}
+                            style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            {loadingPdf ? 'Generando...' : '📥 Descargar PDF'}
+                          </button>
+
+                        </div>
+                      </div>
+
+                      {/* Cuadrícula de Impresión de QRs */}
+                      <div id="qr-cards-batch" className="qr-print-grid">
+                        {bulkQrs.map((item, idx) => (
+                          <div key={idx} className="qr-print-card">
+                            <div className="qr-print-header">{settings.name}</div>
+                            <div className="qr-print-mesa">MESA {item.mesa}</div>
+                            <div className="qr-print-image-box">
+                              <img src={item.qrUrl} alt={`QR Mesa ${item.mesa}`} style={{ width: '150px', height: '150px' }} />
+                            </div>
+                            <div className="qr-print-footer">Escanea para ordenar</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 4: Ajustes de Marca */}
+        {activeTab === 'settings' && (
+          <div className="admin-card animate-fade-in" style={{ maxWidth: '600px' }}>
+            <div className="card-header-admin">
+              <h3 className="card-title-admin">Identidad y Seguridad del Local</h3>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="settings-form">
+              <div className="form-group-admin">
+                <label>Nombre del Restaurante</label>
+                <input
+                  type="text"
+                  className="form-input-admin"
+                  value={settings.name}
+                  onChange={e => setSettings({ ...settings, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group-admin">
+                <label>Logo del Restaurante</label>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  {settings.logoUrl || logoBase64 ? (
+                    <img 
+                      src={logoBase64 || settings.logoUrl || ''} 
+                      alt="Logo Preview" 
+                      style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
+                    />
+                  ) : (
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '24px' }}>
+                      {settings.name ? settings.name[0] : 'G'}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoFileChange}
+                      style={{ display: 'none' }}
+                      id="logo-upload-input"
+                    />
+                    <label
+                      htmlFor="logo-upload-input"
+                      className="btn-admin-secondary"
+                      style={{ padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}
+                    >
+                      📷 Subir Logo
+                    </label>
+                    {(settings.logoUrl || logoBase64) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoBase64('');
+                          setSettings({ ...settings, logoUrl: null });
+                        }}
+                        className="btn-admin-secondary"
+                        style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', padding: '8px 12px' }}
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group-admin">
+                <label>Color de Acento de la Marca</label>
+                <div className="color-picker-row">
+                  <input
+                    type="color"
+                    className="color-input-picker"
+                    value={settings.accentColor}
+                    onChange={e => setSettings({ ...settings, accentColor: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    className="form-input-admin"
+                    style={{ flexGrow: 1, fontFamily: 'monospace' }}
+                    value={settings.accentColor.toUpperCase()}
+                    onChange={e => setSettings({ ...settings, accentColor: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group-admin">
+                <label>Símbolo Monetario</label>
+                <select
+                  className="form-input-admin"
+                  style={{ width: '100%', background: 'rgba(0, 0, 0, 0.2)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 16px', outline: 'none' }}
+                  value={selectedCurrencyOption}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setSelectedCurrencyOption(val);
+                    if (val !== 'custom') {
+                      setSettings({ ...settings, currency: val });
+                    } else {
+                      setSettings({ ...settings, currency: customCurrencySymbol });
+                    }
+                  }}
+                >
+                  {commonCurrencies.map((c, idx) => (
+                    <option key={idx} value={c.symbol} style={{ background: 'var(--bg-primary)', color: '#fff' }}>
+                      {c.label}
+                    </option>
+                  ))}
+                  <option value="custom" style={{ background: 'var(--bg-primary)', color: '#fff' }}>Personalizado...</option>
+                </select>
+
+                {selectedCurrencyOption === 'custom' && (
+                  <input
+                    type="text"
+                    className="form-input-admin"
+                    style={{ width: '100%', marginTop: '10px' }}
+                    placeholder="Escribe el símbolo (ej. kr)"
+                    maxLength={5}
+                    value={customCurrencySymbol}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setCustomCurrencySymbol(val);
+                      setSettings({ ...settings, currency: val });
+                    }}
+                    required
+                  />
+                )}
+              </div>
+
+              <div className="form-group-admin">
+                <label>PIN de Cocina (Para la tablet de los cocineros)</label>
+                <input
+                  type="text"
+                  className="form-input-admin"
+                  maxLength={4}
+                  value={settings.kitchenPin}
+                  onChange={e => setSettings({ ...settings, kitchenPin: e.target.value.replace(/\D/g, '') })}
+                  required
+                />
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-color)', margin: '12px 0' }}></div>
+
+              <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Credenciales del Dueño
+              </h4>
+
+              <div className="form-group-admin">
+                <label>Correo Electrónico de Administrador</label>
+                <input
+                  type="email"
+                  className="form-input-admin"
+                  value={settings.adminEmail}
+                  onChange={e => setSettings({ ...settings, adminEmail: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group-admin">
+                <label>Nueva Contraseña (Dejar en blanco para no cambiar)</label>
+                <input
+                  type="password"
+                  className="form-input-admin"
+                  placeholder="Escribe la nueva contraseña"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                />
+              </div>
+
+              <button type="submit" className="btn-admin-action" style={{ marginTop: '10px' }}>
+                Guardar Cambios de Ajustes
+              </button>
+            </form>
+          </div>
+        )}
+
+      </main>
+
+    </div>
+  );
+}

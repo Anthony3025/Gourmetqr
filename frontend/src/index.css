@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Paleta de Colores Estandarizada Premium (Naranja Vibrante y Neutros Oscuros) */
+  --bg-primary: #090a0d;
+  --bg-secondary: rgba(18, 22, 30, 0.85);
+  --bg-tertiary: #161b24;
+  --accent: #ff5a1f; /* Naranja enérgico y vibrante, muy premium */
+  --accent-hover: #e0440b;
+  --accent-light: rgba(255, 90, 31, 0.12);
+  --accent-gradient: linear-gradient(135deg, #ff5a1f 0%, #e03b00 100%);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(255, 255, 255, 0.05);
+  --success: #3b82f6; /* Estandarizado a azul elegante en vez de verde carnaval */
+  --success-light: rgba(59, 130, 246, 0.1);
+  --warning: #475569; /* Gris pizarra neutro */
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.08);
+
+  /* Fuentes */
+  --font-title: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  /* Efectos y Layout */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --glass-blur: blur(12px);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s ease;
+  
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Scrollbars Modernas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Clases de Utilidad de Animación */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseBorder {
+  0% { box-shadow: 0 0 0 0 rgba(240, 106, 56, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(240, 106, 56, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(240, 106, 56, 0); }
+}
+
+@keyframes glowUpdate {
+  0% { background-color: var(--accent-light); }
+  50% { background-color: rgba(240, 106, 56, 0.4); }
+  100% { background-color: transparent; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pulse-button {
+  animation: pulseBorder 2s infinite;
+}
+
+/* Glassmorphism General */
+.glass {
+  background: var(--bg-secondary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-color);
+}

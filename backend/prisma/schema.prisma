@@ -1,0 +1,74 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Restaurant {
+  id            String     @id @default(uuid())
+  slug          String     @unique // Identificador para la URL (ej. "gourmet-qr")
+  name          String
+  logoUrl       String?
+  accentColor   String     @default("#ff5a1f") // Color de acento
+  currency      String     @default("$")
+  kitchenPin    String     @default("1234") // PIN para entrar a la cocina
+  adminEmail    String     // Email de admin
+  adminPassword String     // Password de admin
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  categories    Category[]
+  products      Product[]
+  orders        Order[]
+}
+
+model Category {
+  id           String      @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  name         String
+  displayOrder Int         @default(0)
+  isActive     Boolean     @default(true)
+  products     Product[]
+}
+
+model Product {
+  id           String      @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  categoryId   String
+  category     Category    @relation(fields: [categoryId], references: [id])
+  name         String
+  description  String
+  price        Decimal     @db.Decimal(10, 2)
+  imageUrl     String?
+  tags         Json        // Ej. ["Vegano", "Sin Gluten"]
+  isActive     Boolean     @default(true)
+  orderItems   OrderItem[]
+}
+
+model Order {
+  id           String      @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  tableNumber  String
+  status       String      @default("pending") // pending, preparing, ready, delivered
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id])
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Int
+  specialNotes String?
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  options      Json     // Almacena las personalizaciones (ej. término de carne, extras)
+}
