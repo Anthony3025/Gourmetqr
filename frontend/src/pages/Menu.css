@@ -479,7 +479,18 @@
   z-index: 500;
   cursor: pointer;
   box-shadow: var(--shadow-lg);
-  animation: fadeIn 0.4s ease forwards;
+  animation: floatBarFadeIn 0.4s ease forwards;
+}
+
+@keyframes floatBarFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .cart-bar-left {
