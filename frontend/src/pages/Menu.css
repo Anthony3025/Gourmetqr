@@ -27,7 +27,7 @@
 }
 
 .brand-logo h1 {
-  font-size: 24px;
+  font-size: 28px;
   color: var(--text-primary);
   background: var(--accent-gradient);
   -webkit-background-clip: text;
@@ -35,14 +35,14 @@
 }
 
 .table-badge {
-  padding: 6px 14px;
+  padding: 8px 16px;
   background: var(--accent-light);
   border: 1px solid rgba(240, 106, 56, 0.3);
   border-radius: var(--radius-full);
   color: var(--accent);
   font-family: var(--font-title);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15.5px;
   letter-spacing: 0.05em;
 }
 
@@ -60,14 +60,14 @@
 }
 
 .category-tab {
-  padding: 10px 18px;
+  padding: 12px 20px;
   background: var(--bg-tertiary);
   border: 1px solid transparent;
   border-radius: var(--radius-full);
   color: var(--text-secondary);
   font-family: var(--font-title);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
   white-space: nowrap;
   cursor: pointer;
   transition: var(--transition-fast);
@@ -150,8 +150,8 @@
 }
 
 .product-img-wrapper {
-  width: 110px;
-  height: 110px;
+  width: 130px;
+  height: 130px;
   position: relative;
   flex-shrink: 0;
 }
@@ -163,7 +163,7 @@
 }
 
 .product-info {
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -178,19 +178,20 @@
 }
 
 .product-name {
-  font-size: 16px;
+  font-size: 18.5px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .product-desc {
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--text-secondary);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 8px;
+  line-height: 1.4;
 }
 
 .product-footer {
@@ -201,23 +202,23 @@
 
 .product-price {
   font-family: var(--font-title);
-  font-size: 14px;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--accent);
   background: var(--accent-light);
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   display: inline-block;
 }
 
 .add-btn {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-full);
   background: var(--accent);
   color: #fff;
   border: none;
-  font-size: 18px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
