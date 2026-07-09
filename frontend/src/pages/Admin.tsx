@@ -591,19 +591,10 @@ export default function Admin() {
 
   // PANTALLA 2: Dashboard Principal Rediseñado
   return (
-    <div className="admin-container animate-fade-in" style={{ display: 'flex', flexDirection: 'row', minHeight: '100vh' }}>
+    <div className="admin-container animate-fade-in">
       
       {/* Sidebar Lateral Izquierdo */}
-      <aside style={{
-        width: '240px',
-        background: 'var(--bg-secondary)',
-        borderRight: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '24px 16px',
-        flexShrink: 0
-      }}>
+      <aside className="admin-sidebar">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
             {settings.logoUrl ? (
@@ -716,7 +707,7 @@ export default function Admin() {
       </aside>
 
       {/* Área de Contenido Principal */}
-      <main style={{ flexGrow: 1, padding: '40px', overflowY: 'auto', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+      <main className="admin-main">
         
         {/* PESTAÑA 1: Overview */}
         {activeTab === 'overview' && (
