@@ -1,5 +1,6 @@
 .menu-container {
-  max-width: 480px; /* Ancho máximo de celular */
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
@@ -920,4 +921,19 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Responsive Grid for Tablets and Desktops */
+@media (min-width: 768px) {
+  .menu-products {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .menu-products {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
 }

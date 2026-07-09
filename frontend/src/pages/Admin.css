@@ -621,3 +621,9 @@ input:checked + .slider:before {
     justify-content: space-between;
   }
 }
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
