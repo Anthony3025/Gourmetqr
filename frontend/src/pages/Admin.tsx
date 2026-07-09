@@ -51,6 +51,7 @@ export default function Admin() {
   const { socket } = useSocket();
   const { restaurantSlug: urlSlug } = useParams<{ restaurantSlug: string }>();
   const restaurantSlug = urlSlug || 'gourmet-qr';
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   // Autenticación por Correo y Contraseña
   const [token, setToken] = useState<string>(localStorage.getItem('admin_token') || '');
@@ -106,7 +107,7 @@ export default function Admin() {
 
   // Carga inicial de settings básicos
   useEffect(() => {
-    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`)
+    fetch(`${apiBase}/api/${restaurantSlug}/settings`)
       .then(res => res.json())
       .then((data: Settings) => {
         setSettings(data);
@@ -130,7 +131,7 @@ export default function Admin() {
 
   const loadDashboardData = () => {
     // Cargar menú (público)
-    fetch(`http://localhost:3001/api/${restaurantSlug}/menu`)
+    fetch(`${apiBase}/api/${restaurantSlug}/menu`)
       .then(res => res.json())
       .then((data: Category[]) => setMenu(data))
       .catch(err => console.error('Error al cargar menú en admin:', err));
@@ -138,7 +139,7 @@ export default function Admin() {
     // Cargar estadísticas (protegido por JWT)
     const activeToken = token || localStorage.getItem('admin_token');
     if (!activeToken) return;
-    fetch(`http://localhost:3001/api/${restaurantSlug}/stats`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/stats`, {
       headers: { 'Authorization': `Bearer ${activeToken}` }
     })
       .then(res => {
@@ -159,7 +160,7 @@ export default function Admin() {
     const handleRefreshStats = () => {
       const activeToken = token || localStorage.getItem('admin_token');
       if (!activeToken) return;
-      fetch(`http://localhost:3001/api/${restaurantSlug}/stats`, {
+      fetch(`${apiBase}/api/${restaurantSlug}/stats`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       })
         .then(res => {
@@ -187,7 +188,7 @@ export default function Admin() {
     setLoadingAuth(true);
     setAuthError('');
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/login`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: emailInput, password: passwordInput })
@@ -234,7 +235,7 @@ export default function Admin() {
       adminPassword: newPassword // Se envía solo si el usuario completó el campo
     };
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/settings`, {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',
@@ -260,7 +261,7 @@ export default function Admin() {
   const handleToggleProductStock = (productId: string, currentStatus: boolean) => {
     const nextStatus = !currentStatus;
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/products/${productId}/availability`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/products/${productId}/availability`, {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',
@@ -284,7 +285,7 @@ export default function Admin() {
 
   // Guardar precio del producto
   const handleSaveProductPrice = (productId: string, newPrice: string) => {
-    fetch(`http://localhost:3001/api/${restaurantSlug}/products/${productId}/price`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/products/${productId}/price`, {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',
@@ -311,7 +312,7 @@ export default function Admin() {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/categories`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/categories`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -337,7 +338,7 @@ export default function Admin() {
   const handleDeleteCategory = (categoryId: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta categoría y todos sus platos asociados?')) return;
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/categories/${categoryId}`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/categories/${categoryId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -375,7 +376,7 @@ export default function Admin() {
 
     const tagsArr = newProductTags.split(',').map(t => t.trim()).filter(Boolean);
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/products`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/products`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -423,7 +424,7 @@ export default function Admin() {
   const handleDeleteProduct = (productId: string, categoryId: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este plato?')) return;
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/products/${productId}`, {
+    fetch(`${apiBase}/api/${restaurantSlug}/products/${productId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

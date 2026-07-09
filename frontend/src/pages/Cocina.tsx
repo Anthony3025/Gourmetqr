@@ -75,7 +75,8 @@ export const Cocina: React.FC = () => {
 
   // Cargar PIN y Logo desde settings del restaurante
   useEffect(() => {
-    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`)
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${restaurantSlug}/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.kitchenPin) {
@@ -154,7 +155,8 @@ export const Cocina: React.FC = () => {
 
   // Cargar órdenes iniciales
   useEffect(() => {
-    fetch(`http://localhost:3001/api/${restaurantSlug}/orders`)
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${restaurantSlug}/orders`)
       .then(res => res.json())
       .then((data: Order[]) => {
         setOrders(data);
@@ -221,7 +223,8 @@ export const Cocina: React.FC = () => {
     // Remover parpadeo si el usuario interactúa con la tarjeta
     setNewOrderIds(prev => prev.filter(id => id !== orderId));
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/orders/${orderId}/status`, {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${restaurantSlug}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'

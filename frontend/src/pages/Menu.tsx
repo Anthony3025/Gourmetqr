@@ -75,7 +75,8 @@ export const Menu: React.FC = () => {
 
   // Cargar menú y ajustes iniciales
   useEffect(() => {
-    fetch(`http://localhost:3001/api/${restaurantSlug}/settings`)
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${restaurantSlug}/settings`)
       .then((res) => res.json())
       .then((data) => {
         if (data.name) setRestaurantName(data.name);
@@ -87,7 +88,7 @@ export const Menu: React.FC = () => {
       })
       .catch((err) => console.error('Error al cargar ajustes:', err));
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/menu`)
+    fetch(`${apiBase}/api/${restaurantSlug}/menu`)
       .then((res) => res.json())
       .then((data: Category[]) => {
         setMenu(data);
@@ -349,7 +350,8 @@ export const Menu: React.FC = () => {
       })
     };
 
-    fetch(`http://localhost:3001/api/${restaurantSlug}/orders`, {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${restaurantSlug}/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

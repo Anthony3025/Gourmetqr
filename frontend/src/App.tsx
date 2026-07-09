@@ -14,7 +14,8 @@ function App() {
       ? pathParts[1]
       : searchParams.get('restaurant') || 'gourmet-qr';
 
-    fetch(`http://localhost:3001/api/${slug}/settings`)
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${slug}/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.accentColor) {
