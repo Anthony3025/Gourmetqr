@@ -933,6 +933,12 @@
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 20px !important;
   }
+  .cart-floating-bar {
+    max-width: 600px !important;
+  }
+  .cart-view {
+    max-width: 600px !important;
+  }
 }
 
 @media (min-width: 1024px) {
