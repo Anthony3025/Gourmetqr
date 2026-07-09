@@ -511,6 +511,48 @@ input:checked + .slider:before {
   }
 }
 
+/* Mobile Header & Hamburger Menu */
+.mobile-admin-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 110;
+}
+
+.hamburger-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+}
+
 /* Responsive Layout */
 .admin-sidebar {
   width: 240px;
@@ -537,56 +579,35 @@ input:checked + .slider:before {
   .admin-container {
     flex-direction: column !important;
   }
+
+  .mobile-admin-header {
+    display: flex;
+  }
   
   .admin-sidebar {
-    width: 100% !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--border-color);
-    padding: 16px;
-    gap: 16px;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    width: 260px !important;
+    height: calc(100vh - 60px);
+    border-right: 1px solid var(--border-color);
+    border-bottom: none;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
   }
 
-  .admin-sidebar > div {
-    display: flex;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    width: 100%;
-    gap: 16px !important;
-  }
-
-  .admin-sidebar > div > div:first-child {
-    display: flex;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 12px !important;
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .admin-sidebar nav {
-    display: flex;
-    flex-direction: row !important;
-    flex-wrap: wrap;
-    gap: 8px !important;
-    width: 100%;
-  }
-
-  .admin-sidebar nav button {
-    width: auto !important;
-    padding: 8px 12px !important;
-    font-size: 13px !important;
-    flex-grow: 1;
+  .admin-sidebar.open {
+    transform: translateX(0);
   }
 
   .admin-sidebar button:last-child {
-    width: 100% !important;
-    margin-top: 8px !important;
-    padding: 8px 12px !important;
+    margin-top: auto;
   }
 
   .admin-main {
-    padding: 16px !important;
+    padding: 20px 16px !important;
   }
   
   .menu-item-row {

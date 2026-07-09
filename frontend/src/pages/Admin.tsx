@@ -63,6 +63,7 @@ export default function Admin() {
 
   // Navegación de Pestañas (Sidebar)
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Estados Operativos
   const [menu, setMenu] = useState<Category[]>([]);
@@ -593,10 +594,43 @@ export default function Admin() {
   return (
     <div className="admin-container animate-fade-in">
       
+      {/* Barra superior en Móviles (Header con botón Hamburguesa) */}
+      <header className="mobile-admin-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {settings.logoUrl ? (
+            <img src={settings.logoUrl} alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
+              {settings.name ? settings.name[0] : 'G'}
+            </div>
+          )}
+          <span style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' }}>{settings.name}</span>
+        </div>
+        
+        <button 
+          className="hamburger-btn" 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Menú"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            {isMobileMenuOpen ? (
+              <path d="M18 6L6 18M6 6l12 12" />
+            ) : (
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </header>
+
+      {/* Overlay móvil para cerrar el menú haciendo clic afuera */}
+      {isMobileMenuOpen && (
+        <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+      
       {/* Sidebar Lateral Izquierdo */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+          <div className="sidebar-brand-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
             {settings.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
             ) : (
@@ -612,7 +646,7 @@ export default function Admin() {
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => { setActiveTab('overview'); setIsMobileMenuOpen(false); }}
               className={`btn-admin-secondary ${activeTab === 'overview' ? 'active-tab' : ''}`}
               style={{
                 width: '100%',
@@ -633,7 +667,7 @@ export default function Admin() {
             </button>
 
             <button
-              onClick={() => setActiveTab('menu')}
+              onClick={() => { setActiveTab('menu'); setIsMobileMenuOpen(false); }}
               className={`btn-admin-secondary ${activeTab === 'menu' ? 'active-tab' : ''}`}
               style={{
                 width: '100%',
@@ -654,7 +688,7 @@ export default function Admin() {
             </button>
 
             <button
-              onClick={() => setActiveTab('tables')}
+              onClick={() => { setActiveTab('tables'); setIsMobileMenuOpen(false); }}
               className={`btn-admin-secondary ${activeTab === 'tables' ? 'active-tab' : ''}`}
               style={{
                 width: '100%',
@@ -675,7 +709,7 @@ export default function Admin() {
             </button>
 
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
               className={`btn-admin-secondary ${activeTab === 'settings' ? 'active-tab' : ''}`}
               style={{
                 width: '100%',
