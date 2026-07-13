@@ -82,6 +82,10 @@ export const Menu: React.FC = () => {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>(''); // pending, preparing, ready
 
+  // Estados de llamado de servicio
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [serviceRequestStatus, setServiceRequestStatus] = useState<'idle' | 'sent'>('idle');
+
   // Persistir carrito en localStorage cada vez que cambia
   useEffect(() => {
     localStorage.setItem(`gourmetqr_cart_${restaurantSlug}`, JSON.stringify(cart));
@@ -421,12 +425,25 @@ export const Menu: React.FC = () => {
       });
   };
 
+  const handleSendServiceRequest = (type: 'waiter' | 'bill') => {
+    if (!socket) return;
+    setServiceRequestStatus('sent');
+    socket.emit('request_service', {
+      restaurantSlug,
+      tableNumber: mesa,
+      type
+    });
+    setTimeout(() => {
+      setShowServiceModal(false);
+      setServiceRequestStatus('idle');
+    }, 3000);
+  };
+
   // Filtrar productos
   const getFilteredProducts = (category: Category) => {
     if (!category.products) return [];
     
     return category.products.filter(product => {
-      if (!product.isActive) return false; // Ocultar si el dueño lo marcó sin stock
       if (activeFilter === 'Todos') return true;
       if (activeFilter === 'Vegano') return product.tags.includes('Vegano');
       if (activeFilter === 'Sin Gluten') return product.tags.includes('Sin Gluten');
@@ -608,8 +625,14 @@ export const Menu: React.FC = () => {
               <div
                 key={product.id}
                 className="product-card"
-                onClick={() => handleProductClick(product)}
-                style={totalQty > 0 ? { borderColor: 'rgba(240, 106, 56, 0.25)', background: 'rgba(22, 26, 34, 0.95)' } : {}}
+                onClick={() => product.isActive && handleProductClick(product)}
+                style={
+                  !product.isActive 
+                    ? { opacity: 0.55, cursor: 'not-allowed', filter: 'grayscale(0.6)' }
+                    : totalQty > 0 
+                      ? { borderColor: 'rgba(240, 106, 56, 0.25)', background: 'rgba(22, 26, 34, 0.95)' } 
+                      : {}
+                }
               >
                 {/* Badges de etiquetas */}
                 <div className="product-tag-badges">
@@ -665,15 +688,21 @@ export const Menu: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <button 
-                      className="add-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductClick(product);
-                      }}
-                    >
-                      +
-                    </button>
+                    {product.isActive ? (
+                      <button 
+                        className="add-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProductClick(product);
+                        }}
+                      >
+                        +
+                      </button>
+                    ) : (
+                      <span className="out-of-stock-label" style={{ fontSize: '11px', color: '#ef4444', fontWeight: 800, background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', padding: '5px 10px', borderRadius: '8px' }}>
+                        Agotado
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -930,6 +959,69 @@ export const Menu: React.FC = () => {
               <span>{currencySymbol} {(calculateCartTotal() * 1.10).toFixed(2)}</span>
             </button>
           </footer>
+        </div>
+      )}
+
+      {/* Botón Flotante de Campana */}
+      <button 
+        type="button" 
+        className="service-bell-float animate-fade-in" 
+        onClick={() => setShowServiceModal(true)}
+        aria-label="Llamar Mesero / Pedir Cuenta"
+      >
+        🛎️
+      </button>
+
+      {/* Modal de Solicitud de Servicio */}
+      {showServiceModal && (
+        <div className="product-modal-overlay animate-fade-in" onClick={() => serviceRequestStatus === 'sent' ? null : setShowServiceModal(false)}>
+          <div className="product-modal animate-scale-up" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '380px', width: '90%', padding: '24px', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
+            
+            {serviceRequestStatus === 'idle' ? (
+              <>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>🛎️</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>¿Qué necesitas en la Mesa {mesa}?</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '24px', lineHeight: '1.4' }}>
+                  El personal de mesa recibirá tu llamado instantáneamente.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => handleSendServiceRequest('waiter')}
+                    className="action-btn-large" 
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: '#fff', justifyContent: 'center' }}
+                  >
+                    🙋‍♂️ Llamar al Mesero
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleSendServiceRequest('bill')}
+                    className="action-btn-large"
+                    style={{ background: 'var(--accent-gradient)', color: '#fff', justifyContent: 'center' }}
+                  >
+                    💵 Pedir la Cuenta
+                  </button>
+                </div>
+
+                <button 
+                  type="button" 
+                  onClick={() => setShowServiceModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '20px' }}
+                >
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <div style={{ padding: '16px 0' }}>
+                <div className="waiting-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px', margin: '0 auto 16px auto' }}></div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Llamado enviado...</h3>
+                <p style={{ color: '#10b981', fontSize: '13.5px', fontWeight: '700' }}>
+                  ¡El personal ha sido notificado!
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

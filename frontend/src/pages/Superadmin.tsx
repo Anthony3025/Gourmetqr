@@ -45,10 +45,13 @@ export default function Superadmin() {
   const [currency, setCurrency] = useState('$');
   const [kitchenPin, setKitchenPin] = useState('1234');
   const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
-  const [adminName, setAdminName] = useState('');
+
   const [submitError, setSubmitError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+
+  // Éxito de creación (WhatsApp)
+  const [createdTenant, setCreatedTenant] = useState<{ email: string; tempPass: string } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Verificar token en carga inicial
   useEffect(() => {
@@ -134,22 +137,8 @@ export default function Superadmin() {
     setSubmitError('');
     setSubmitLoading(true);
 
-    const generatedSlug = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-
     const payload = {
-      name,
-      slug: generatedSlug,
-      accentColor: '#ff5a1f',
-      currency: '$',
-      kitchenPin: '1234',
-      adminEmail,
-      adminPassword,
-      adminName
+      adminEmail
     };
 
     fetch(`${apiBase}/api/superadmin/restaurants`, {
@@ -166,19 +155,15 @@ export default function Superadmin() {
         }
         return res.json();
       })
-      .then(() => {
-        // Limpiar formulario y cerrar modal
-        setName('');
-        setSlug('');
-        setAccentColor('#ff5a1f');
-        setCurrency('$');
-        setKitchenPin('1234');
+      .then(data => {
+        setCreatedTenant({
+          email: adminEmail,
+          tempPass: data.temporaryPassword
+        });
         setAdminEmail('');
-        setAdminPassword('');
-        setAdminName('');
         setShowCreateModal(false);
+        setShowSuccessModal(true);
         setSubmitLoading(false);
-        // Recargar lista
         fetchRestaurants(token);
       })
       .catch(err => {
@@ -444,64 +429,81 @@ export default function Superadmin() {
               <h3>Crear Nuevo Restaurante</h3>
               <button onClick={() => setShowCreateModal(false)} className="btn-close">×</button>
             </div>
-            <form onSubmit={handleCreateRestaurant} className="sa-modal-form">
-              <div className="form-group">
-                <label>Nombre del Negocio / Restaurante</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Hamburguesas Deluxe"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                />
+             <form onSubmit={handleCreateRestaurant} className="sa-modal-form">
+               <div className="form-group">
+                 <label>Correo Electrónico del Administrador</label>
+                 <input
+                   type="email"
+                   placeholder="admin@restaurante.com"
+                   value={adminEmail}
+                   onChange={e => setAdminEmail(e.target.value)}
+                   required
+                 />
+               </div>
+
+               {submitError && <div className="submit-error-msg">{submitError}</div>}
+
+               <div className="sa-modal-footer">
+                 <button type="button" onClick={() => setShowCreateModal(false)} className="btn-cancel">Cancelar</button>
+                 <button type="submit" className="btn-submit" disabled={submitLoading}>
+                   {submitLoading ? 'Creando...' : 'Crear Restaurante'}
+                 </button>
+               </div>
+             </form>
+           </div>
+         </div>
+       )}
+
+      {/* Modal Éxito y WhatsApp */}
+      {showSuccessModal && createdTenant && (
+        <div className="sa-modal-overlay">
+          <div className="sa-modal" style={{ maxWidth: '450px' }}>
+            <div className="sa-modal-header" style={{ justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: '48px', display: 'block', margin: '10px 0' }}>🎉</span>
+              <h3 style={{ margin: 0, fontSize: '22px' }}>¡Restaurante Registrado!</h3>
+            </div>
+            <div className="sa-modal-body" style={{ padding: '20px 0' }}>
+              <p style={{ color: 'var(--sa-text-muted)', marginBottom: '15px', fontSize: '14.5px', lineHeight: '1.5' }}>
+                Se ha generado la cuenta y una contraseña temporal. Envía los accesos a tu cliente:
+              </p>
+              
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', marginBottom: '20px', fontFamily: 'monospace', fontSize: '13.5px', whiteSpace: 'pre-wrap', color: '#e2e8f0', lineHeight: '1.6' }}>
+{`Acceso Administrador:
+🔗 URL: ${window.location.origin}/admin
+📧 Correo: ${createdTenant.email}
+🔑 Contraseña Temporal: ${createdTenant.tempPass}`}
               </div>
 
-              <hr className="sa-divider" />
-              <h4>Cuenta del Administrador de Local</h4>
-
-              <div className="form-group">
-                <label>Nombre Completo</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Juan Pérez"
-                  value={adminName}
-                  onChange={e => setAdminName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Correo Electrónico</label>
-                  <input
-                    type="email"
-                    placeholder="admin@deluxe.com"
-                    value={adminEmail}
-                    onChange={e => setAdminEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Contraseña</label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={adminPassword}
-                    onChange={e => setAdminPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {submitError && <div className="submit-error-msg">{submitError}</div>}
-
-              <div className="sa-modal-footer">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn-cancel">Cancelar</button>
-                <button type="submit" className="btn-submit" disabled={submitLoading}>
-                  {submitLoading ? 'Creando...' : 'Crear Restaurante'}
-                </button>
-              </div>
-            </form>
+              <button
+                type="button"
+                onClick={() => {
+                  const message = encodeURIComponent(
+                    `¡Hola! Tu cuenta en Gourmet QR ya está lista. 🛎️\n\n` +
+                    `Ingresa a tu panel desde aquí:\n` +
+                    `🔗 ${window.location.origin}/admin\n\n` +
+                    `Tus credenciales de acceso temporal:\n` +
+                    `📧 Usuario: ${createdTenant.email}\n` +
+                    `🔑 Contraseña: ${createdTenant.tempPass}\n\n` +
+                    `Al ingresar, te guiaremos paso a paso en tu primera configuración de marca.`
+                  );
+                  window.open(`https://wa.me/?text=${message}`, '_blank');
+                }}
+                className="btn-primary"
+                style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '14px', fontSize: '15px', background: '#25D366', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)' }}
+              >
+                💬 Enviar por WhatsApp
+              </button>
+            </div>
+            <div className="sa-modal-footer">
+              <button 
+                type="button" 
+                onClick={() => { setShowSuccessModal(false); setCreatedTenant(null); }} 
+                className="btn-submit"
+                style={{ width: '100%' }}
+              >
+                Entendido
+              </button>
+            </div>
           </div>
         </div>
       )}

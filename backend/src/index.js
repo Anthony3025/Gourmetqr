@@ -68,6 +68,24 @@ app.use('/api', staffRoutes);
 // --- SOCKET.IO ---
 io.on('connection', (socket) => {
   console.log(`WebSocket conectado: ${socket.id}`);
+
+  // Recibir llamado de mesa y retransmitir
+  socket.on('request_service', (data) => {
+    const requestData = {
+      id: Math.random().toString(36).substring(2, 9),
+      restaurantSlug: data.restaurantSlug,
+      tableNumber: data.tableNumber,
+      type: data.type, // 'waiter' o 'bill'
+      createdAt: new Date().toISOString()
+    };
+    io.emit('new_service_request', requestData);
+  });
+
+  // Marcar como atendido y retransmitir
+  socket.on('resolve_service', (data) => {
+    io.emit('service_resolved', data); // data: { id, restaurantSlug }
+  });
+
   socket.on('disconnect', () => {
     console.log(`WebSocket desconectado: ${socket.id}`);
   });

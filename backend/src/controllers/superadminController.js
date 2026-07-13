@@ -20,20 +20,20 @@ const getRestaurants = async (req, res) => {
 };
 
 const createRestaurant = async (req, res) => {
-  const { name, slug, accentColor, currency, kitchenPin, adminEmail, adminPassword, adminName } = req.body;
+  const { adminEmail } = req.body;
 
-  if (!name || !slug || !adminEmail || !adminPassword) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios (nombre, slug, email de admin, contraseña).' });
+  if (!adminEmail) {
+    return res.status(400).json({ error: 'El correo electrónico del administrador es obligatorio.' });
   }
 
   try {
-    // Verificar si el slug ya existe
-    const existingRestaurant = await prisma.restaurant.findUnique({
-      where: { slug }
-    });
-    if (existingRestaurant) {
-      return res.status(400).json({ error: 'El slug ya está en uso por otro restaurante.' });
-    }
+    // Generar contraseña temporal segura de 8 caracteres
+    const generatedPassword = Math.random().toString(36).substring(2, 10);
+
+    // Generar slug y nombre temporal
+    const suffix = Math.random().toString(36).substring(2, 6);
+    const name = "Nombre Temporal";
+    const slug = `temp-${suffix}`;
 
     // Verificar si el email de admin ya existe
     const existingUser = await prisma.user.findUnique({
@@ -43,8 +43,8 @@ const createRestaurant = async (req, res) => {
       return res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
     }
 
-    // Hash de contraseña
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    // Hash de la contraseña generada
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     // Crear restaurant y usuario en una transacción
     const result = await prisma.$transaction(async (tx) => {
@@ -52,9 +52,9 @@ const createRestaurant = async (req, res) => {
         data: {
           name,
           slug,
-          accentColor: accentColor || '#ff5a1f',
-          currency: currency || '$',
-          kitchenPin: kitchenPin || '1234'
+          accentColor: '#ff5a1f',
+          currency: '$',
+          kitchenPin: '1234'
         }
       });
 
@@ -62,7 +62,7 @@ const createRestaurant = async (req, res) => {
         data: {
           email: adminEmail,
           password: hashedPassword,
-          name: adminName || 'Administrador',
+          name: 'Administrador',
           role: 'admin',
           restaurantId: restaurant.id
         }
@@ -71,7 +71,11 @@ const createRestaurant = async (req, res) => {
       return { restaurant, user };
     });
 
-    res.status(201).json(result);
+    res.status(201).json({
+      restaurant: result.restaurant,
+      user: result.user,
+      temporaryPassword: generatedPassword
+    });
   } catch (error) {
     console.error('Error al crear restaurante:', error);
     res.status(500).json({ error: 'Error interno al crear el restaurante.' });

@@ -29,6 +29,14 @@ interface Order {
   items: OrderItem[];
 }
 
+interface ServiceRequest {
+  id: string;
+  restaurantSlug: string;
+  tableNumber: string;
+  type: 'waiter' | 'bill';
+  createdAt: string;
+}
+
 // Componente para calcular el tiempo transcurrido en tiempo real
 const TimeElapsed: React.FC<{ createdAt: string }> = ({ createdAt }) => {
   const [elapsed, setElapsed] = useState('');
@@ -65,6 +73,7 @@ export const Cocina: React.FC = () => {
   const { socket, isConnected } = useSocket();
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
 
   // Estados de Autenticación por PIN y Marca
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -81,6 +90,11 @@ export const Cocina: React.FC = () => {
       .then(data => {
         if (data.kitchenPin) {
           setCorrectPin(data.kitchenPin);
+          const savedAuth = localStorage.getItem(`gourmetqr_kitchen_auth_${restaurantSlug}`);
+          const savedPin = localStorage.getItem(`gourmetqr_kitchen_pin_${restaurantSlug}`);
+          if (savedAuth === 'true' && savedPin === data.kitchenPin) {
+            setIsAuthenticated(true);
+          }
         }
         if (data.logoUrl) {
           setLogoUrl(data.logoUrl);
@@ -99,6 +113,8 @@ export const Cocina: React.FC = () => {
       if (newPin.length === 4) {
         if (newPin === correctPin) {
           setIsAuthenticated(true);
+          localStorage.setItem(`gourmetqr_kitchen_auth_${restaurantSlug}`, 'true');
+          localStorage.setItem(`gourmetqr_kitchen_pin_${restaurantSlug}`, correctPin);
         } else {
           setPinError(true);
           // Resetear tras pequeña pausa para que el usuario note el error
@@ -112,6 +128,12 @@ export const Cocina: React.FC = () => {
 
   const handleBackspace = () => {
     setPinInput(prev => prev.slice(0, -1));
+  };
+
+  const handleResolveService = (requestId: string) => {
+    if (!socket) return;
+    socket.emit('resolve_service', { id: requestId, restaurantSlug });
+    setServiceRequests(prev => prev.filter(r => r.id !== requestId));
   };
 
   // Web Audio API: Sonido sutil de campana programático
@@ -202,14 +224,35 @@ export const Cocina: React.FC = () => {
       }
     };
 
+    const handleNewServiceRequest = (req: ServiceRequest) => {
+      if (req.restaurantSlug === restaurantSlug) {
+        setServiceRequests(prev => {
+          // Evitar duplicados si llega dos veces
+          if (prev.some(r => r.id === req.id)) return prev;
+          return [...prev, req];
+        });
+        playAlertSound();
+      }
+    };
+
+    const handleServiceResolved = (data: { id: string; restaurantSlug: string }) => {
+      if (data.restaurantSlug === restaurantSlug) {
+        setServiceRequests(prev => prev.filter(r => r.id !== data.id));
+      }
+    };
+
     socket.on('new_order', handleNewOrder);
     socket.on('order_updated', handleOrderUpdated);
     socket.on('settings_updated', handleSettingsUpdated);
+    socket.on('new_service_request', handleNewServiceRequest);
+    socket.on('service_resolved', handleServiceResolved);
 
     return () => {
       socket.off('new_order', handleNewOrder);
       socket.off('order_updated', handleOrderUpdated);
       socket.off('settings_updated', handleSettingsUpdated);
+      socket.off('new_service_request', handleNewServiceRequest);
+      socket.off('service_resolved', handleServiceResolved);
     };
   }, [socket]);
 
@@ -318,6 +361,64 @@ export const Cocina: React.FC = () => {
 
       {/* Tablero Kanban */}
       <main className="kanban-board">
+
+        {/* Columna: Llamados de Mesa */}
+        <section className="kanban-column service-calls-column">
+          <header className="column-header" style={{ background: 'rgba(255, 90, 31, 0.08)', borderBottom: '1px solid rgba(255, 90, 31, 0.15)' }}>
+            <div className="column-title-group">
+              <span className="column-dot pending" style={{ background: 'var(--accent)' }}></span>
+              <h3 className="column-title" style={{ color: 'var(--accent)' }}>🛎️ Llamados de Mesa</h3>
+            </div>
+            <span className="column-count-badge" style={{ background: 'var(--accent)' }}>{serviceRequests.length}</span>
+          </header>
+
+          <div className="column-cards-container">
+            {serviceRequests.map(req => (
+              <div 
+                key={req.id} 
+                className="order-card service-call-card animate-scale-up" 
+                style={{ borderColor: req.type === 'bill' ? '#10b981' : 'var(--accent)', background: 'rgba(22, 26, 34, 0.95)', padding: '16px' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div className="order-card-table" style={{ margin: 0, padding: '4px 10px', fontSize: '12px', background: req.type === 'bill' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(240, 106, 56, 0.15)', color: req.type === 'bill' ? '#10b981' : 'var(--accent)' }}>
+                    MESA {req.tableNumber}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <TimeElapsed createdAt={req.createdAt} />
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  {req.type === 'bill' ? (
+                    <>
+                      <span style={{ fontSize: '18px' }}>💵</span>
+                      <span>Solicita la Cuenta</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '18px' }}>🙋‍♂️</span>
+                      <span>Llama al Mesero</span>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleResolveService(req.id)}
+                  className="kanban-action-btn"
+                  style={{ width: '100%', background: req.type === 'bill' ? '#10b981' : 'var(--accent)', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Marcar Atendido ✓
+                </button>
+              </div>
+            ))}
+            {serviceRequests.length === 0 && (
+              <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic', padding: '20px 0', textAlign: 'center' }}>
+                Sin llamados pendientes.
+              </div>
+            )}
+          </div>
+        </section>
         
         {/* Columna: Pendientes */}
         <section className="kanban-column">

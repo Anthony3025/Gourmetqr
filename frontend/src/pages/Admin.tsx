@@ -250,6 +250,17 @@ export default function Admin() {
     adminEmail: 'admin@gourmet.com'
   });
   const [newPassword, setNewPassword] = useState('');
+
+  // Onboarding Wizard
+  const [onboardingName, setOnboardingName] = useState('');
+  const [onboardingSlug, setOnboardingSlug] = useState('');
+  const [onboardingPassword, setOnboardingPassword] = useState('');
+  const [onboardingCurrency, setOnboardingCurrency] = useState('$');
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingError, setOnboardingError] = useState('');
+  const [onboardingSubmitting, setOnboardingSubmitting] = useState(false);
+  const [showOnboardingSuccess, setShowOnboardingSuccess] = useState(false);
+
   const [selectedCurrencyOption, setSelectedCurrencyOption] = useState('$');
   const [customCurrencySymbol, setCustomCurrencySymbol] = useState('');
   const [logoBase64, setLogoBase64] = useState('');
@@ -319,6 +330,43 @@ export default function Admin() {
       })
       .then((data: Stats) => setStats(data))
       .catch(err => console.error('Error al cargar estadísticas:', err));
+  };
+
+  const handleOnboardingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setOnboardingError('');
+    setOnboardingSubmitting(true);
+
+    const slugToSave = onboardingSlug.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+
+    fetch(`${apiBase}/api/${restaurantSlug}/settings`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token || localStorage.getItem('admin_token')}`
+      },
+      body: JSON.stringify({
+        name: onboardingName,
+        slug: slugToSave,
+        currency: onboardingCurrency,
+        adminPassword: onboardingPassword
+      })
+    })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(d => { throw new Error(d.error || 'Error al guardar configuración'); });
+        }
+        return res.json();
+      })
+      .then(() => {
+        setShowOnboardingSuccess(true);
+        setOnboardingSubmitting(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setOnboardingError(err.message);
+        setOnboardingSubmitting(false);
+      });
   };
 
   // Escuchar WebSockets
@@ -760,6 +808,155 @@ export default function Admin() {
   // PANTALLA 2: Dashboard Principal Rediseñado
   return (
     <div className="admin-container animate-fade-in">
+
+      {/* Asistente de Onboarding Wizard para Cuentas Nuevas */}
+      {settings.name === "Nombre Temporal" && (
+        <div className="login-overlay" style={{ zIndex: 1000, background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)' }}>
+          <div className="login-card" style={{ maxWidth: '500px', width: '90%', padding: '32px', textAlign: 'left' }}>
+            
+            {/* Header del Onboarding */}
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>🛎️</span>
+              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#fff' }}>¡Bienvenido a Gourmet QR!</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '6px' }}>Configuremos tu restaurante en menos de un minuto.</p>
+            </div>
+
+            {/* Pasos */}
+            {!showOnboardingSuccess ? (
+              <form onSubmit={handleOnboardingSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {onboardingStep === 1 && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 1: Cambia tu Contraseña Temporal</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Crea una nueva contraseña segura para tus próximos accesos.</p>
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>Nueva Contraseña</label>
+                      <input
+                        type="password"
+                        className="form-input-admin"
+                        placeholder="Mínimo 6 caracteres"
+                        value={onboardingPassword}
+                        onChange={e => setOnboardingPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    <button type="button" onClick={() => { if (onboardingPassword.length >= 6) setOnboardingStep(2); else alert('La contraseña debe tener al menos 6 caracteres.'); }} className="btn-admin-action" style={{ width: '100%', marginTop: '10px' }}>
+                      Continuar
+                    </button>
+                  </div>
+                )}
+
+                {onboardingStep === 2 && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 2: Datos de tu Negocio</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Ingresa el nombre de tu restaurante y el enlace web.</p>
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>Nombre del Restaurante / Negocio</label>
+                      <input
+                        type="text"
+                        className="form-input-admin"
+                        placeholder="Ej. Tacos El Rey"
+                        value={onboardingName}
+                        onChange={e => {
+                          setOnboardingName(e.target.value);
+                          setOnboardingSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-'));
+                        }}
+                        required
+                      />
+                    </div>
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>Enlace Web Personalizado (Slug)</label>
+                      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0 12px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)', userSelect: 'none' }}>/</span>
+                        <input
+                          type="text"
+                          className="form-input-admin"
+                          style={{ border: 'none', background: 'transparent', width: '100%', paddingLeft: '4px' }}
+                          placeholder="tacos-el-rey"
+                          value={onboardingSlug}
+                          onChange={e => setOnboardingSlug(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                      <button type="button" onClick={() => setOnboardingStep(1)} className="btn-admin-secondary" style={{ width: '40%' }}>Atrás</button>
+                      <button type="button" onClick={() => { if (onboardingName && onboardingSlug) setOnboardingStep(3); else alert('Faltan campos obligatorios.'); }} className="btn-admin-action" style={{ width: '60%' }}>Continuar</button>
+                    </div>
+                  </div>
+                )}
+
+                {onboardingStep === 3 && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 3: Símbolo de Moneda</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Elige la moneda para mostrar los precios en tu menú.</p>
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>Símbolo Monetario</label>
+                      <select
+                        className="form-input-admin"
+                        style={{ width: '100%', background: 'rgba(0, 0, 0, 0.2)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 16px', outline: 'none' }}
+                        value={onboardingCurrency}
+                        onChange={e => setOnboardingCurrency(e.target.value)}
+                      >
+                        {commonCurrencies.map((c, idx) => (
+                          <option key={idx} value={c.symbol} style={{ background: 'var(--bg-primary)', color: '#fff' }}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {onboardingError && <div className="auth-error-msg" style={{ color: 'var(--danger)', fontSize: '13px', background: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', textAlign: 'center' }}>{onboardingError}</div>}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                      <button type="button" onClick={() => setOnboardingStep(2)} className="btn-admin-secondary" style={{ width: '40%' }}>Atrás</button>
+                      <button type="submit" className="btn-admin-action" style={{ width: '60%' }} disabled={onboardingSubmitting}>
+                        {onboardingSubmitting ? 'Guardando...' : 'Completar Registro'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </form>
+            ) : (
+              /* Éxito de Onboarding */
+              <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: '48px', display: 'block', marginBottom: '10px' }}>🎉</span>
+                  <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: 0 }}>¡Todo configurado!</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>Tu local ya está activo en Gourmet QR. Aquí tienes tus enlaces principales:</p>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px' }}>
+                  <div>
+                    <strong style={{ color: 'var(--accent)' }}>🔗 Menú para Clientes:</strong><br />
+                    <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                      {window.location.origin}/{onboardingSlug}/menu
+                    </span>
+                  </div>
+                  <div>
+                    <strong style={{ color: 'var(--accent)' }}>🔗 Pantalla para Cocineros:</strong><br />
+                    <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                      {window.location.origin}/{onboardingSlug}/cocina
+                    </span>
+                    <br />
+                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>PIN por defecto: <strong>1234</strong></span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const finalSlug = onboardingSlug.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+                    window.location.href = `/${finalSlug}/admin`;
+                  }}
+                  className="btn-admin-action"
+                  style={{ width: '100%', marginTop: '10px', padding: '14px' }}
+                >
+                  Ir al Panel de Administración ↗
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Barra superior en Móviles (Header con botón Hamburguesa) */}
       <header className="mobile-admin-header">
@@ -954,6 +1151,71 @@ export default function Admin() {
               <div className="kpi-card" style={{ padding: '24px' }}>
                 <span className="kpi-label">Demora Cocina</span>
                 <div className="kpi-value" style={{ fontSize: '32px' }}>{stats.averageKitchenTime} min</div>
+              </div>
+            </div>
+
+            <div className="admin-links-card" style={{ marginTop: '24px', background: 'rgba(255, 90, 31, 0.04)', border: '1px solid rgba(255, 90, 31, 0.15)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'left' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔗 Enlaces Rápidos de tu Negocio</h4>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>📱 Carta Digital (Clientes)</strong>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={`${window.location.origin}/${restaurantSlug}/menu`} 
+                      style={{ flexGrow: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none' }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${restaurantSlug}/menu`); alert('Enlace copiado al portapapeles.'); }} 
+                      className="btn-admin-secondary" 
+                      style={{ padding: '8px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                    >
+                      Copiar
+                    </button>
+                    <a 
+                      href={`${window.location.origin}/${restaurantSlug}/menu`} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="btn-admin-action" 
+                      style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', textAlign: 'center' }}
+                    >
+                      Abrir ↗
+                    </a>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>🍳 Pantalla de Cocina (Empleados)</strong>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={`${window.location.origin}/${restaurantSlug}/cocina`} 
+                      style={{ flexGrow: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none' }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${restaurantSlug}/cocina`); alert('Enlace copiado al portapapeles.'); }} 
+                      className="btn-admin-secondary" 
+                      style={{ padding: '8px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                    >
+                      Copiar
+                    </button>
+                    <a 
+                      href={`${window.location.origin}/${restaurantSlug}/cocina`} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="btn-admin-action" 
+                      style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', textAlign: 'center' }}
+                    >
+                      Abrir ↗
+                    </a>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>PIN de ingreso configurado: <strong>{settings.kitchenPin}</strong></span>
+                </div>
               </div>
             </div>
 
