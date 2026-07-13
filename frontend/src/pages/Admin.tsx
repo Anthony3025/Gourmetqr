@@ -1050,6 +1050,7 @@ export default function Admin() {
                 <span className="kpi-label">Demora Cocina</span>
                 <div className="kpi-value" style={{ fontSize: '32px' }}>{stats.averageKitchenTime} min</div>
               </div>
+            </div>
 
             <div className="admin-links-card" style={{ marginTop: '24px', background: 'rgba(255, 90, 31, 0.04)', border: '1px solid rgba(255, 90, 31, 0.15)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'left' }}>
               <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enlaces Rápidos de tu Negocio</h4>
