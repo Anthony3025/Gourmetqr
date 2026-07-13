@@ -404,22 +404,34 @@ export default function Admin() {
     setLoadingAuth(true);
     setAuthError('');
 
-    fetch(`${apiBase}/api/${restaurantSlug}/login`, {
+    // Usamos el endpoint genérico /api/auth/login para que funcione
+    // sin importar el slug (nuevo tenant con slug temporal, etc.)
+    fetch(`${apiBase}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: emailInput, password: passwordInput })
     })
       .then(res => {
         if (!res.ok) {
-          throw new Error('Credenciales incorrectas');
+          return res.json().then(d => { throw new Error(d.error || 'Credenciales incorrectas'); });
         }
         return res.json();
       })
-      .then((data: { token: string }) => {
+      .then((data: { token: string; user: { role: string }; restaurant?: { slug: string } | null }) => {
+        // Solo admin y superadmin pueden acceder al panel
+        if (data.user.role !== 'admin' && data.user.role !== 'superadmin') {
+          throw new Error('No tienes permisos para acceder al panel de administración.');
+        }
         localStorage.setItem('admin_token', data.token);
         setToken(data.token);
         setIsAuthenticated(true);
         setAuthError('');
+
+        // Si el usuario tiene un slug asignado, redirigir a su panel correcto
+        // Esto garantiza que React Router cargue el slug real y no el fallback 'gourmet-qr'
+        if (data.restaurant?.slug) {
+          window.location.href = `/${data.restaurant.slug}/admin`;
+        }
       })
       .catch(err => {
         setAuthError(err.message || 'Error al iniciar sesión');

@@ -97,7 +97,7 @@ export default function Superadmin() {
     setLoadingAuth(true);
     setAuthError('');
 
-    fetch(`${apiBase}/api/gourmet-qr/login`, { // slug por defecto para login general
+    fetch(`${apiBase}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: emailInput, password: passwordInput })
