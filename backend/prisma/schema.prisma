@@ -15,6 +15,7 @@ model Restaurant {
   accentColor   String     @default("#ff5a1f") // Color de acento
   currency      String     @default("$")
   kitchenPin    String     @default("1234") // PIN para entrar a la cocina
+  isActive      Boolean    @default(true) // Estado del negocio (Activo/Suspendido)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   categories    Category[]

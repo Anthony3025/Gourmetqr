@@ -3,16 +3,30 @@ const path = require('path');
 const fs = require('fs');
 
 const getSettings = async (req, res) => {
-  res.json({
-    id: req.restaurant.id,
-    slug: req.restaurant.slug,
-    name: req.restaurant.name,
-    logoUrl: req.restaurant.logoUrl,
-    accentColor: req.restaurant.accentColor,
-    currency: req.restaurant.currency,
-    kitchenPin: req.restaurant.kitchenPin,
-    adminEmail: req.restaurant.adminEmail
-  });
+  try {
+    const adminUser = await prisma.user.findFirst({
+      where: {
+        restaurantId: req.restaurant.id,
+        role: 'admin'
+      },
+      select: { email: true }
+    });
+
+    res.json({
+      id: req.restaurant.id,
+      slug: req.restaurant.slug,
+      name: req.restaurant.name,
+      logoUrl: req.restaurant.logoUrl,
+      accentColor: req.restaurant.accentColor,
+      currency: req.restaurant.currency,
+      kitchenPin: req.restaurant.kitchenPin,
+      adminEmail: adminUser ? adminUser.email : '',
+      isActive: req.restaurant.isActive // Agregado para soportar activar/desactivar local
+    });
+  } catch (error) {
+    console.error('Error al obtener ajustes:', error);
+    res.status(500).json({ error: 'Error al obtener los ajustes.' });
+  }
 };
 
 const updateSettings = async (req, res, io) => {
@@ -38,6 +52,7 @@ const updateSettings = async (req, res, io) => {
       }
     }
 
+    // Actualizar datos del restaurante
     const updated = await prisma.restaurant.update({
       where: { id: req.restaurant.id },
       data: {
@@ -45,11 +60,33 @@ const updateSettings = async (req, res, io) => {
         logoUrl: finalLogoUrl !== undefined ? finalLogoUrl : req.restaurant.logoUrl,
         accentColor: accentColor !== undefined ? accentColor : req.restaurant.accentColor,
         currency: currency !== undefined ? currency : req.restaurant.currency,
-        kitchenPin: kitchenPin !== undefined ? kitchenPin : req.restaurant.kitchenPin,
-        adminEmail: adminEmail !== undefined ? adminEmail : req.restaurant.adminEmail,
-        adminPassword: adminPassword !== undefined && adminPassword !== '' ? adminPassword : req.restaurant.adminPassword
+        kitchenPin: kitchenPin !== undefined ? kitchenPin : req.restaurant.kitchenPin
       }
     });
+
+    // Actualizar credenciales de admin si es necesario
+    if (adminEmail !== undefined || (adminPassword !== undefined && adminPassword !== '')) {
+      const adminUser = await prisma.user.findFirst({
+        where: {
+          restaurantId: req.restaurant.id,
+          role: 'admin'
+        }
+      });
+
+      if (adminUser) {
+        const userUpdateData = {};
+        if (adminEmail !== undefined) userUpdateData.email = adminEmail;
+        if (adminPassword !== undefined && adminPassword !== '') {
+          const bcrypt = require('bcryptjs');
+          userUpdateData.password = await bcrypt.hash(adminPassword, 10);
+        }
+
+        await prisma.user.update({
+          where: { id: adminUser.id },
+          data: userUpdateData
+        });
+      }
+    }
     
     io.emit('settings_updated', { restaurantId: updated.id, settings: updated });
     res.json(updated);

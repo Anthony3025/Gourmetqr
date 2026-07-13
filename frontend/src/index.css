@@ -51,6 +51,7 @@ body {
   overflow-x: hidden;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  font-size: 16.5px; /* Aumentado ligeramente para mejor legibilidad */
 }
 
 h1, h2, h3, h4, h5, h6 {

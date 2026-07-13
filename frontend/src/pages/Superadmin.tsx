@@ -8,6 +8,7 @@ interface Restaurant {
   accentColor: string;
   currency: string;
   kitchenPin: string;
+  isActive?: boolean;
   createdAt: string;
   users: {
     id: string;
@@ -211,6 +212,32 @@ export default function Superadmin() {
       });
   };
 
+  const toggleRestaurantActive = (id: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    
+    // Actualización optimista de estado local en la grilla
+    setRestaurants(prev => prev.map(r => r.id === id ? { ...r, isActive: newStatus } : r));
+
+    fetch(`${apiBase}/api/superadmin/restaurants/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ isActive: newStatus })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('No se pudo cambiar el estado.');
+        return res.json();
+      })
+      .catch(err => {
+        console.error(err);
+        // Rollback en caso de error
+        setRestaurants(prev => prev.map(r => r.id === id ? { ...r, isActive: currentStatus } : r));
+        alert('Error al cambiar el estado del negocio.');
+      });
+  };
+
   const handleEditClick = (rest: Restaurant) => {
     setSelectedRest(rest);
     setName(rest.name);
@@ -322,6 +349,22 @@ export default function Superadmin() {
 
       {/* Main Content */}
       <main className="superadmin-content">
+        {/* Tarjetas de Métricas Simplificadas */}
+        <div className="sa-metrics-grid">
+          <div className="sa-metric-card">
+            <h4>Negocios Totales</h4>
+            <div className="metric-number">{restaurants.length}</div>
+          </div>
+          <div className="sa-metric-card">
+            <h4>Negocios Activos</h4>
+            <div className="metric-number">{restaurants.filter(r => r.isActive !== false).length}</div>
+          </div>
+          <div className="sa-metric-card">
+            <h4>MRR Estimado</h4>
+            <div className="metric-number">${(restaurants.filter(r => r.isActive !== false).length * 19.99).toFixed(2)}</div>
+          </div>
+        </div>
+
         <div className="content-header">
           <h2>Restaurantes Inquilinos (Tenants)</h2>
           <button onClick={() => { setSubmitError(''); setShowCreateModal(true); }} className="btn-primary">
@@ -350,18 +393,37 @@ export default function Superadmin() {
                     <h3>{rest.name}</h3>
                   </div>
                   <div className="restaurant-card-body">
-                    <p><strong>Slug URL:</strong> <code>/{rest.slug}/menu</code></p>
-                    <p><strong>Moneda:</strong> {rest.currency}</p>
-                    <p><strong>PIN Cocina:</strong> <code>{rest.kitchenPin}</code></p>
+                    <p>
+                      <strong>Enlace Carta:</strong><br />
+                      <a 
+                        href={`${window.location.origin}/${rest.slug}/menu`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="rest-menu-link"
+                      >
+                        /{rest.slug}/menu ↗
+                      </a>
+                    </p>
                     <p>
                       <strong>Administrador:</strong><br />
                       {rest.users[0] ? (
-                        <span className="admin-badge">{rest.users[0].email}</span>
+                        <span className="admin-email-text">{rest.users[0].email}</span>
                       ) : (
-                        <span className="no-admin-badge">Sin Administrador</span>
+                        <span className="no-admin-text">Sin Administrador</span>
                       )}
                     </p>
-                    <p className="creation-date">Registrado el {new Date(rest.createdAt).toLocaleDateString()}</p>
+                    
+                    {/* Toggle de Estado Activo/Suspendido */}
+                    <div className="sa-status-toggle">
+                      <span>Estado:</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleRestaurantActive(rest.id, rest.isActive !== false)}
+                        className={`status-toggle-btn ${rest.isActive !== false ? 'active' : 'suspended'}`}
+                      >
+                        {rest.isActive !== false ? '🟢 Activo' : '🔴 Suspendido'}
+                      </button>
+                    </div>
                   </div>
                   <div className="restaurant-card-footer">
                     <button onClick={() => handleEditClick(rest)} className="btn-secondary">Editar</button>

@@ -94,7 +94,7 @@ const deleteRestaurant = async (req, res) => {
 
 const updateRestaurant = async (req, res) => {
   const { id } = req.params;
-  const { name, slug, accentColor, currency, kitchenPin } = req.body;
+  const { name, slug, accentColor, currency, kitchenPin, isActive } = req.body;
 
   try {
     if (slug) {
@@ -113,7 +113,8 @@ const updateRestaurant = async (req, res) => {
         slug,
         accentColor,
         currency,
-        kitchenPin
+        kitchenPin,
+        isActive
       }
     });
 

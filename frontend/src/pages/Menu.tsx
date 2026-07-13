@@ -59,6 +59,7 @@ export const Menu: React.FC = () => {
   const [currencySymbol, setCurrencySymbol] = useState('$');
   const [restaurantName, setRestaurantName] = useState('Gourmet QR');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [restaurantActive, setRestaurantActive] = useState<boolean>(true);
 
   // Estados del modal y carrito
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -129,6 +130,9 @@ export const Menu: React.FC = () => {
         if (data.currency) setCurrencySymbol(data.currency);
         if (data.accentColor) {
           document.documentElement.style.setProperty('--accent', data.accentColor);
+        }
+        if (data.isActive !== undefined) {
+          setRestaurantActive(data.isActive);
         }
       })
       .catch((err) => console.error('Error al cargar ajustes:', err));
@@ -437,6 +441,18 @@ export const Menu: React.FC = () => {
       <div className="waiting-screen">
         <div className="waiting-spinner"></div>
         <p>Cargando menú delicioso...</p>
+      </div>
+    );
+  }
+
+  if (!restaurantActive) {
+    return (
+      <div className="waiting-screen suspended-screen" style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box' }}>
+        <span style={{ fontSize: '64px', display: 'block', marginBottom: '20px' }}>🛎️</span>
+        <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '12px', color: '#fff' }}>Servicio Temporalmente Suspendido</h2>
+        <p style={{ color: '#94a3b8', maxWidth: '400px', margin: '0 auto', fontSize: '16px', lineHeight: '1.6' }}>
+          Este restaurante no se encuentra activo en este momento. Por favor, contacta directamente al personal o al administrador del local.
+        </p>
       </div>
     );
   }
