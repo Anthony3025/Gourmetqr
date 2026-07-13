@@ -133,12 +133,19 @@ export default function Superadmin() {
     setSubmitError('');
     setSubmitLoading(true);
 
+    const generatedSlug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
     const payload = {
       name,
-      slug: slug.toLowerCase().replace(/\s+/g, '-'),
-      accentColor,
-      currency,
-      kitchenPin,
+      slug: generatedSlug,
+      accentColor: '#ff5a1f',
+      currency: '$',
+      kitchenPin: '1234',
       adminEmail,
       adminPassword,
       adminName
@@ -376,60 +383,15 @@ export default function Superadmin() {
               <button onClick={() => setShowCreateModal(false)} className="btn-close">×</button>
             </div>
             <form onSubmit={handleCreateRestaurant} className="sa-modal-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Nombre del Restaurante</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. Hamburguesas Deluxe"
-                    value={name}
-                    onChange={e => { setName(e.target.value); setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-')); }}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Slug URL (Identificador)</label>
-                  <input
-                    type="text"
-                    placeholder="ej-hamburguesas-deluxe"
-                    value={slug}
-                    onChange={e => setSlug(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Color de Acento (HEX)</label>
-                  <input
-                    type="color"
-                    value={accentColor}
-                    onChange={e => setAccentColor(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Símbolo de Moneda</label>
-                  <input
-                    type="text"
-                    placeholder="$"
-                    value={currency}
-                    onChange={e => setCurrency(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>PIN de Cocina</label>
-                  <input
-                    type="text"
-                    placeholder="1234"
-                    maxLength={6}
-                    value={kitchenPin}
-                    onChange={e => setKitchenPin(e.target.value)}
-                    required
-                  />
-                </div>
+              <div className="form-group">
+                <label>Nombre del Negocio / Restaurante</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Hamburguesas Deluxe"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                />
               </div>
 
               <hr className="sa-divider" />
