@@ -1050,67 +1050,70 @@ export default function Admin() {
                 <span className="kpi-label">Demora Cocina</span>
                 <div className="kpi-value" style={{ fontSize: '32px' }}>{stats.averageKitchenTime} min</div>
               </div>
-            </div>
 
             <div className="admin-links-card" style={{ marginTop: '24px', background: 'rgba(255, 90, 31, 0.04)', border: '1px solid rgba(255, 90, 31, 0.15)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'left' }}>
               <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enlaces Rápidos de tu Negocio</h4>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '20px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', flex: '1 1 280px', minWidth: '250px' }}>
                   <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>Carta Digital (Clientes)</strong>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <input 
                       type="text" 
                       readOnly 
                       value={`${window.location.origin}/${restaurantSlug}/menu`} 
-                      style={{ flexGrow: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none' }}
+                      style={{ flex: '1 1 180px', minWidth: '150px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none' }}
                     />
-                    <button 
-                      type="button" 
-                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${restaurantSlug}/menu`); alert('Enlace copiado al portapapeles.'); }} 
-                      className="btn-admin-secondary" 
-                      style={{ padding: '8px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
-                    >
-                      Copiar
-                    </button>
-                    <a 
-                      href={`${window.location.origin}/${restaurantSlug}/menu`} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="btn-admin-action" 
-                      style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', textAlign: 'center' }}
-                    >
-                      Abrir ↗
-                    </a>
+                    <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${restaurantSlug}/menu`); alert('Enlace copiado al portapapeles.'); }} 
+                        className="btn-admin-secondary" 
+                        style={{ padding: '8px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      >
+                        Copiar
+                      </button>
+                      <a 
+                        href={`${window.location.origin}/${restaurantSlug}/menu`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="btn-admin-action" 
+                        style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', textAlign: 'center' }}
+                      >
+                        Abrir ↗
+                      </a>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', flex: '1 1 280px', minWidth: '250px' }}>
                   <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>Pantalla de Cocina (Empleados)</strong>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <input 
                       type="text" 
                       readOnly 
                       value={`${window.location.origin}/${restaurantSlug}/cocina`} 
-                      style={{ flexGrow: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none' }}
+                      style={{ flex: '1 1 180px', minWidth: '150px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none' }}
                     />
-                    <button 
-                      type="button" 
-                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${restaurantSlug}/cocina`); alert('Enlace copiado al portapapeles.'); }} 
-                      className="btn-admin-secondary" 
-                      style={{ padding: '8px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
-                    >
-                      Copiar
-                    </button>
-                    <a 
-                      href={`${window.location.origin}/${restaurantSlug}/cocina`} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="btn-admin-action" 
-                      style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', textAlign: 'center' }}
-                    >
-                      Abrir ↗
-                    </a>
+                    <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${restaurantSlug}/cocina`); alert('Enlace copiado al portapapeles.'); }} 
+                        className="btn-admin-secondary" 
+                        style={{ padding: '8px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      >
+                        Copiar
+                      </button>
+                      <a 
+                        href={`${window.location.origin}/${restaurantSlug}/cocina`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="btn-admin-action" 
+                        style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', textAlign: 'center' }}
+                      >
+                        Abrir ↗
+                      </a>
+                    </div>
                   </div>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>PIN de ingreso configurado: <strong>{settings.kitchenPin}</strong></span>
                 </div>
