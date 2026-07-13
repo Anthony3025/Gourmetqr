@@ -66,12 +66,57 @@ export const Menu: React.FC = () => {
   const [modalNotes, setModalNotes] = useState('');
   const [modalOptions, setModalOptions] = useState<{ [key: string]: { value: string; price: number } }>({});
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const savedCart = localStorage.getItem(`gourmetqr_cart_${restaurantSlug}`);
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (e) {
+      console.error('Error al inicializar el carrito:', e);
+      return [];
+    }
+  });
   const [showCart, setShowCart] = useState(false);
 
   // Estados de orden procesada
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>(''); // pending, preparing, ready
+
+  // Persistir carrito en localStorage cada vez que cambia
+  useEffect(() => {
+    localStorage.setItem(`gourmetqr_cart_${restaurantSlug}`, JSON.stringify(cart));
+  }, [cart, restaurantSlug]);
+
+  // Cargar orden activa al montar el componente
+  useEffect(() => {
+    const savedOrderId = localStorage.getItem(`gourmetqr_order_${restaurantSlug}`);
+    if (savedOrderId) {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      fetch(`${apiBase}/api/${restaurantSlug}/orders/${savedOrderId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Orden no encontrada o finalizada');
+          return res.json();
+        })
+        .then((data: Order) => {
+          if (['pending', 'preparing', 'ready'].includes(data.status)) {
+            setCurrentOrder(data);
+            setOrderStatus(data.status);
+          } else {
+            localStorage.removeItem(`gourmetqr_order_${restaurantSlug}`);
+          }
+        })
+        .catch((err) => {
+          console.error('Error al recuperar orden activa:', err);
+          localStorage.removeItem(`gourmetqr_order_${restaurantSlug}`);
+        });
+    }
+  }, [restaurantSlug]);
+
+  // Limpiar localStorage si la orden es entregada o cancelada
+  useEffect(() => {
+    if (orderStatus === 'delivered' || orderStatus === 'cancelled') {
+      localStorage.removeItem(`gourmetqr_order_${restaurantSlug}`);
+    }
+  }, [orderStatus, restaurantSlug]);
 
   // Cargar menú y ajustes iniciales
   useEffect(() => {
@@ -364,6 +409,7 @@ export const Menu: React.FC = () => {
         setOrderStatus(data.status);
         setCart([]); // Vaciar carrito
         setShowCart(false);
+        localStorage.setItem(`gourmetqr_order_${restaurantSlug}`, data.id);
       })
       .catch(err => {
         console.error('Error al enviar la orden:', err);

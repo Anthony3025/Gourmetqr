@@ -35,7 +35,7 @@ interface Settings {
   adminEmail: string;
 }
 
-type Tab = 'overview' | 'menu' | 'tables' | 'settings';
+type Tab = 'overview' | 'menu' | 'tables' | 'settings' | 'staff';
 
 const commonCurrencies = [
   { label: 'Dólar Estadounidense ($)', symbol: '$' },
@@ -46,6 +46,173 @@ const commonCurrencies = [
   { label: 'Sol Peruano (S/)', symbol: 'S/' },
   { label: 'Bolívar Venezolano (Bs.)', symbol: 'Bs.' },
 ];
+
+interface StaffMember {
+  id: string;
+  email: string;
+  name: string | null;
+  createdAt: string;
+}
+
+function StaffTab({ token, restaurantSlug, apiBase }: { token: string; restaurantSlug: string; apiBase: string }) {
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const fetchStaff = () => {
+    setLoading(true);
+    fetch(`${apiBase}/api/${restaurantSlug}/staff`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error al obtener personal');
+        return res.json();
+      })
+      .then(data => {
+        setStaffList(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchStaff();
+  }, []);
+
+  const handleAddStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    fetch(`${apiBase}/api/${restaurantSlug}/staff`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ email, password, name })
+    })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(d => { throw new Error(d.error || 'Error al agregar personal'); });
+        }
+        return res.json();
+      })
+      .then(() => {
+        setSuccess('Miembro de personal agregado con éxito.');
+        setEmail('');
+        setPassword('');
+        setName('');
+        fetchStaff();
+      })
+      .catch(err => {
+        setError(err.message);
+      });
+  };
+
+  const handleDeleteStaff = (id: string, name: string) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${name} del personal?`)) return;
+
+    fetch(`${apiBase}/api/${restaurantSlug}/staff/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error al eliminar');
+        return res.json();
+      })
+      .then(() => {
+        fetchStaff();
+      })
+      .catch(err => {
+        console.error(err);
+        alert(err.message);
+      });
+  };
+
+  return (
+    <div className="admin-card animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', maxWidth: '1000px' }}>
+      <div className="sa-card-section" style={{ textAlign: 'left' }}>
+        <h3 className="card-title-admin" style={{ marginBottom: '20px' }}>👥 Agregar Miembro de Personal</h3>
+        <form onSubmit={handleAddStaff} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-group-admin">
+            <label>Nombre Completo</label>
+            <input
+              type="text"
+              className="form-input-admin"
+              placeholder="Ej. Carlos Cocinero"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group-admin">
+            <label>Correo Electrónico</label>
+            <input
+              type="email"
+              className="form-input-admin"
+              placeholder="carlos@restaurante.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group-admin">
+            <label>Contraseña</label>
+            <input
+              type="password"
+              className="form-input-admin"
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          {error && <div className="auth-error-msg" style={{ color: 'var(--danger)', fontSize: '13px', background: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', textAlign: 'center' }}>{error}</div>}
+          {success && <div style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '13px', textAlign: 'center' }}>{success}</div>}
+          <button type="submit" className="btn-admin-action" style={{ width: '100%' }}>Agregar a Personal</button>
+        </form>
+      </div>
+      <div className="sa-card-section" style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '28px', textAlign: 'left' }}>
+        <h3 className="card-title-admin" style={{ marginBottom: '20px' }}>Lista de Personal</h3>
+        {loading ? (
+          <p style={{ color: 'var(--text-secondary)' }}>Cargando personal...</p>
+        ) : staffList.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)' }}>No hay personal registrado.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto' }}>
+            {staffList.map(member => (
+              <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '14px', color: '#fff' }}>{member.name}</h4>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{member.email}</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteStaff(member.id, member.name || '')}
+                  className="btn-admin-secondary"
+                  style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', padding: '6px 10px', fontSize: '12px' }}
+                >
+                  Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Admin() {
   const { socket } = useSocket();
@@ -728,6 +895,27 @@ export default function Admin() {
             >
               Ajustes de Marca
             </button>
+
+            <button
+              onClick={() => { setActiveTab('staff'); setIsMobileMenuOpen(false); }}
+              className={`btn-admin-secondary ${activeTab === 'staff' ? 'active-tab' : ''}`}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: activeTab === 'staff' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'staff' ? 'var(--accent)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'staff' ? '700' : '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              👥 Gestionar Personal
+            </button>
           </nav>
         </div>
 
@@ -1350,6 +1538,11 @@ export default function Admin() {
               </button>
             </form>
           </div>
+        )}
+
+        {/* PESTAÑA 5: Gestionar Personal */}
+        {activeTab === 'staff' && (
+          <StaffTab token={token} restaurantSlug={restaurantSlug} apiBase={apiBase} />
         )}
 
       </main>

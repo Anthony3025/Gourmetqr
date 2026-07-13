@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 
 async function main() {
   // Limpiar base de datos existente
+  await prisma.user.deleteMany({});
   await prisma.orderItem.deleteMany({});
   await prisma.order.deleteMany({});
   await prisma.product.deleteMany({});
@@ -21,13 +22,35 @@ async function main() {
       name: 'Gourmet QR',
       accentColor: '#ff5a1f',
       currency: '$',
-      kitchenPin: '1234',
-      adminEmail: 'admin@gourmet.com',
-      adminPassword: hashedPassword
+      kitchenPin: '1234'
     }
   });
 
   console.log(`Restaurante '${restaurant.name}' creado con ID: ${restaurant.id}`);
+
+  // Crear usuario administrador para este restaurante
+  const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@gourmet.com',
+      password: hashedPassword,
+      name: 'Admin Gourmet',
+      role: 'admin',
+      restaurantId: restaurant.id
+    }
+  });
+  console.log(`Usuario administrador creado: ${adminUser.email}`);
+
+  // Crear usuario superadministrador del sistema
+  const superadminHashedPassword = await bcrypt.hash('superadmin123', 10);
+  const superadminUser = await prisma.user.create({
+    data: {
+      email: 'superadmin@gourmet.com',
+      password: superadminHashedPassword,
+      name: 'Super Admin',
+      role: 'superadmin'
+    }
+  });
+  console.log(`Usuario superadministrador creado: ${superadminUser.email}`);
 
   // 2. Crear Categorías asociadas al restaurante
   const entradas = await prisma.category.create({

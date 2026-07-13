@@ -207,9 +207,12 @@ const downloadPdf = async (req, res) => {
 
     const host = req.headers.host;
     const protocol = req.protocol;
+    const frontendUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
 
     const generateCard = async (mesaNum, x, y) => {
-      const urlMesa = `${protocol}://${host}/menu?mesa=${mesaNum}&restaurant=${req.restaurant.slug}`;
+      const urlMesa = process.env.FRONTEND_URL 
+        ? `${frontendUrl}/${req.restaurant.slug}/menu?mesa=${mesaNum}`
+        : `${protocol}://${host}/menu?mesa=${mesaNum}&restaurant=${req.restaurant.slug}`;
       const qrBuffer = await QRCode.toBuffer(urlMesa, { width: 300, margin: 1 });
 
       doc.lineWidth(0.5)
@@ -289,10 +292,40 @@ const downloadPdf = async (req, res) => {
   }
 };
 
+const getOrderById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const order = await prisma.order.findFirst({
+      where: {
+        id,
+        restaurantId: req.restaurant.id
+      },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Orden no encontrada.' });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Error al obtener la orden:', error);
+    res.status(500).json({ error: 'Error al obtener la orden.' });
+  }
+};
+
 module.exports = {
   getActiveOrders,
   createOrder,
   updateOrderStatus,
   getStats,
-  downloadPdf
+  downloadPdf,
+  getOrderById
 };

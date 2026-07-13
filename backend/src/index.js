@@ -55,11 +55,15 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes')(io);
 const orderRoutes = require('./routes/orderRoutes')(io);
 const settingsRoutes = require('./routes/settingsRoutes')(io);
+const superadminRoutes = require('./routes/superadminRoutes');
+const staffRoutes = require('./routes/staffRoutes');
 
 app.use('/api', authRoutes);
 app.use('/api', productRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', settingsRoutes);
+app.use('/api', superadminRoutes);
+app.use('/api', staffRoutes);
 
 // --- SOCKET.IO ---
 io.on('connection', (socket) => {

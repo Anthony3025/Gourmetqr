@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Menu } from './pages/Menu';
 import { Cocina } from './pages/Cocina';
 import Admin from './pages/Admin';
+import Superadmin from './pages/Superadmin';
 
 function App() {
   // Cargar configuración de marca (Color de acento) al inicializar la aplicación
@@ -10,7 +11,7 @@ function App() {
     const pathParts = window.location.pathname.split('/');
     const searchParams = new URLSearchParams(window.location.search);
     // Resolver slug del path (ej: /gourmet-qr/menu) o query (ej: ?restaurant=gourmet-qr)
-    const slug = pathParts[1] && ['menu', 'cocina', 'admin'].indexOf(pathParts[1]) === -1
+    const slug = pathParts[1] && ['menu', 'cocina', 'admin', 'superadmin'].indexOf(pathParts[1]) === -1
       ? pathParts[1]
       : searchParams.get('restaurant') || 'gourmet-qr';
 
@@ -28,6 +29,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Ruta global de súper administración */}
+        <Route path="/superadmin" element={<Superadmin />} />
+
         {/* Rutas principales con slug dinámico */}
         <Route path="/:restaurantSlug/menu" element={<Menu />} />
         <Route path="/:restaurantSlug/cocina" element={<Cocina />} />

@@ -19,7 +19,25 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+const requireSuperadmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superadmin') {
+    next();
+  } else {
+    return res.status(403).json({ error: 'Acceso denegado. Permisos de Súper-Administrador requeridos.' });
+  }
+};
+
+const requireAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+    next();
+  } else {
+    return res.status(403).json({ error: 'Acceso denegado. Permisos de Administrador requeridos.' });
+  }
+};
+
 module.exports = {
   authenticateToken,
+  requireSuperadmin,
+  requireAdmin,
   JWT_SECRET
 };

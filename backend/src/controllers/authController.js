@@ -11,25 +11,36 @@ const login = async (req, res) => {
   }
 
   try {
-    if (email !== req.restaurant.adminEmail) {
+    // Buscar usuario por email en la base de datos
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { restaurant: true }
+    });
+
+    if (!user) {
       return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
     }
 
+    // Verificar restricciones de restaurante si estamos bajo un slug específico (y no es superadmin)
+    if (req.restaurant && user.role !== 'superadmin') {
+      if (user.restaurantId !== req.restaurant.id) {
+        return res.status(401).json({ error: 'No tienes acceso a este restaurante.' });
+      }
+    }
+
     let isPasswordCorrect = false;
-    const dbPassword = req.restaurant.adminPassword;
 
     // Verificar con bcrypt
-    if (dbPassword.startsWith('$2a$') || dbPassword.startsWith('$2b$')) {
-      isPasswordCorrect = await bcrypt.compare(password, dbPassword);
+    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+      isPasswordCorrect = await bcrypt.compare(password, user.password);
     } else {
-      // Si está en texto plano, comparar directamente
-      isPasswordCorrect = (password === dbPassword);
+      // Si está en texto plano, comparar directamente y migrar
+      isPasswordCorrect = (password === user.password);
       if (isPasswordCorrect) {
-        // Migrar a bcrypt automáticamente
         const hashedPassword = await bcrypt.hash(password, 10);
-        await prisma.restaurant.update({
-          where: { id: req.restaurant.id },
-          data: { adminPassword: hashedPassword }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { password: hashedPassword }
         });
         console.log(`Contraseña para ${email} migrada a bcrypt con éxito.`);
       }
@@ -39,12 +50,14 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
     }
 
-    // Generar Token JWT
+    // Generar Token JWT con rol y restaurantId
     const token = jwt.sign(
       { 
-        id: req.restaurant.id, 
-        email: req.restaurant.adminEmail,
-        slug: req.restaurant.slug
+        id: user.id, 
+        email: user.email,
+        role: user.role,
+        restaurantId: user.restaurantId,
+        slug: user.restaurant ? user.restaurant.slug : null
       }, 
       JWT_SECRET, 
       { expiresIn: '8h' }
@@ -53,11 +66,17 @@ const login = async (req, res) => {
     return res.json({
       success: true,
       token,
-      restaurant: {
-        id: req.restaurant.id,
-        name: req.restaurant.name,
-        slug: req.restaurant.slug
-      }
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      restaurant: user.restaurant ? {
+        id: user.restaurant.id,
+        name: user.restaurant.name,
+        slug: user.restaurant.slug
+      } : null
     });
 
   } catch (error) {

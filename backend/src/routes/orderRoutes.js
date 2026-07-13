@@ -8,6 +8,7 @@ module.exports = (io) => {
 
   // Public/Kitchen order endpoints
   router.get('/:restaurantSlug/orders', resolveRestaurant, orderController.getActiveOrders);
+  router.get('/:restaurantSlug/orders/:id', resolveRestaurant, orderController.getOrderById);
   router.post('/:restaurantSlug/orders', resolveRestaurant, (req, res) => {
     orderController.createOrder(req, res, io);
   });
