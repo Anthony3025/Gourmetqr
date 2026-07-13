@@ -144,7 +144,7 @@ function StaffTab({ token, restaurantSlug, apiBase }: { token: string; restauran
   return (
     <div className="admin-card animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px', maxWidth: '1000px' }}>
       <div className="sa-card-section" style={{ textAlign: 'left' }}>
-        <h3 className="card-title-admin" style={{ marginBottom: '20px' }}>👥 Agregar Miembro de Personal</h3>
+        <h3 className="card-title-admin" style={{ marginBottom: '20px' }}>Agregar Miembro de Personal</h3>
         <form onSubmit={handleAddStaff} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="form-group-admin">
             <label>Nombre Completo</label>
@@ -816,7 +816,6 @@ export default function Admin() {
             
             {/* Header del Onboarding */}
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>🛎️</span>
               <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#fff' }}>¡Bienvenido a Gourmet QR!</h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '6px' }}>Configuremos tu restaurante en menos de un minuto.</p>
             </div>
@@ -919,20 +918,19 @@ export default function Admin() {
               /* Éxito de Onboarding */
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: '48px', display: 'block', marginBottom: '10px' }}>🎉</span>
                   <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: 0 }}>¡Todo configurado!</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>Tu local ya está activo en Gourmet QR. Aquí tienes tus enlaces principales:</p>
                 </div>
 
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px' }}>
                   <div>
-                    <strong style={{ color: 'var(--accent)' }}>🔗 Menú para Clientes:</strong><br />
+                    <strong style={{ color: 'var(--accent)' }}>Menú para Clientes:</strong><br />
                     <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
                       {window.location.origin}/{onboardingSlug}/menu
                     </span>
                   </div>
                   <div>
-                    <strong style={{ color: 'var(--accent)' }}>🔗 Pantalla para Cocineros:</strong><br />
+                    <strong style={{ color: 'var(--accent)' }}>Pantalla para Cocineros:</strong><br />
                     <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
                       {window.location.origin}/{onboardingSlug}/cocina
                     </span>
@@ -1111,7 +1109,7 @@ export default function Admin() {
                 cursor: 'pointer'
               }}
             >
-              👥 Gestionar Personal
+              Gestionar Personal
             </button>
           </nav>
         </div>
@@ -1155,11 +1153,11 @@ export default function Admin() {
             </div>
 
             <div className="admin-links-card" style={{ marginTop: '24px', background: 'rgba(255, 90, 31, 0.04)', border: '1px solid rgba(255, 90, 31, 0.15)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'left' }}>
-              <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔗 Enlaces Rápidos de tu Negocio</h4>
+              <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enlaces Rápidos de tu Negocio</h4>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>📱 Carta Digital (Clientes)</strong>
+                  <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>Carta Digital (Clientes)</strong>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input 
                       type="text" 
@@ -1188,7 +1186,7 @@ export default function Admin() {
                 </div>
 
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>🍳 Pantalla de Cocina (Empleados)</strong>
+                  <strong style={{ fontSize: '13px', color: '#fff', display: 'block', marginBottom: '8px' }}>Pantalla de Cocina (Empleados)</strong>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input 
                       type="text" 
@@ -1221,7 +1219,7 @@ export default function Admin() {
 
             <div style={{ marginTop: '20px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '20px', textAlign: 'center' }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                📡 El panel está escuchando la cocina. Las métricas se actualizan solas cada vez que se prepara o entrega un plato.
+                El panel está escuchando la cocina. Las métricas se actualizan solas cada vez que se prepara o entrega un plato.
               </p>
             </div>
           </div>

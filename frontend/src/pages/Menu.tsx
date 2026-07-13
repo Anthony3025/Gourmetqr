@@ -465,7 +465,6 @@ export const Menu: React.FC = () => {
   if (!restaurantActive) {
     return (
       <div className="waiting-screen suspended-screen" style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box' }}>
-        <span style={{ fontSize: '64px', display: 'block', marginBottom: '20px' }}>🛎️</span>
         <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '12px', color: '#fff' }}>Servicio Temporalmente Suspendido</h2>
         <p style={{ color: '#94a3b8', maxWidth: '400px', margin: '0 auto', fontSize: '16px', lineHeight: '1.6' }}>
           Este restaurante no se encuentra activo en este momento. Por favor, contacta directamente al personal o al administrador del local.
@@ -979,7 +978,6 @@ export const Menu: React.FC = () => {
             
             {serviceRequestStatus === 'idle' ? (
               <>
-                <div style={{ fontSize: '48px', marginBottom: '12px' }}>🛎️</div>
                 <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>¿Qué necesitas en la Mesa {mesa}?</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '24px', lineHeight: '1.4' }}>
                   El personal de mesa recibirá tu llamado instantáneamente.

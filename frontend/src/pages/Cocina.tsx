@@ -367,7 +367,7 @@ export const Cocina: React.FC = () => {
           <header className="column-header" style={{ background: 'rgba(255, 90, 31, 0.08)', borderBottom: '1px solid rgba(255, 90, 31, 0.15)' }}>
             <div className="column-title-group">
               <span className="column-dot pending" style={{ background: 'var(--accent)' }}></span>
-              <h3 className="column-title" style={{ color: 'var(--accent)' }}>🛎️ Llamados de Mesa</h3>
+              <h3 className="column-title" style={{ color: 'var(--accent)' }}>Llamados de Mesa</h3>
             </div>
             <span className="column-count-badge" style={{ background: 'var(--accent)' }}>{serviceRequests.length}</span>
           </header>
@@ -604,7 +604,7 @@ export const Cocina: React.FC = () => {
                     className="kanban-action-btn deliver-prep"
                     onClick={() => handleAdvanceStatus(order.id, order.status)}
                   >
-                    Entregar 🍽️
+                    Entregar
                   </button>
                 </div>
               </div>

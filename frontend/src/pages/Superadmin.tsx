@@ -281,7 +281,6 @@ export default function Superadmin() {
       <div className="superadmin-login-container">
         <div className="superadmin-login-card">
           <div className="superadmin-login-header">
-            <span className="logo-icon">👑</span>
             <h2>Gourmet QR</h2>
             <p>Panel de Súper-Administración</p>
           </div>
@@ -321,7 +320,6 @@ export default function Superadmin() {
       {/* Header */}
       <header className="superadmin-header">
         <div className="header-logo">
-          <span className="crown-icon">👑</span>
           <div>
             <h1>Gourmet QR</h1>
             <p>Consola de Gestión Global</p>
@@ -351,7 +349,7 @@ export default function Superadmin() {
         </div>
 
         <div className="content-header">
-          <h2>Restaurantes Inquilinos (Tenants)</h2>
+          <h2>Restaurantes</h2>
           <button onClick={() => { setSubmitError(''); setShowCreateModal(true); }} className="btn-primary">
             + Nuevo Restaurante
           </button>
@@ -406,7 +404,7 @@ export default function Superadmin() {
                         onClick={() => toggleRestaurantActive(rest.id, rest.isActive !== false)}
                         className={`status-toggle-btn ${rest.isActive !== false ? 'active' : 'suspended'}`}
                       >
-                        {rest.isActive !== false ? '🟢 Activo' : '🔴 Suspendido'}
+                        {rest.isActive !== false ? 'Activo' : 'Suspendido'}
                       </button>
                     </div>
                   </div>
@@ -459,7 +457,6 @@ export default function Superadmin() {
         <div className="sa-modal-overlay">
           <div className="sa-modal" style={{ maxWidth: '450px' }}>
             <div className="sa-modal-header" style={{ justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
-              <span style={{ fontSize: '48px', display: 'block', margin: '10px 0' }}>🎉</span>
               <h3 style={{ margin: 0, fontSize: '22px' }}>¡Restaurante Registrado!</h3>
             </div>
             <div className="sa-modal-body" style={{ padding: '20px 0' }}>
@@ -469,21 +466,21 @@ export default function Superadmin() {
               
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', marginBottom: '20px', fontFamily: 'monospace', fontSize: '13.5px', whiteSpace: 'pre-wrap', color: '#e2e8f0', lineHeight: '1.6' }}>
 {`Acceso Administrador:
-🔗 URL: ${window.location.origin}/admin
-📧 Correo: ${createdTenant.email}
-🔑 Contraseña Temporal: ${createdTenant.tempPass}`}
+URL: ${window.location.origin}/admin
+Correo: ${createdTenant.email}
+Contraseña Temporal: ${createdTenant.tempPass}`}
               </div>
 
               <button
                 type="button"
                 onClick={() => {
                   const message = encodeURIComponent(
-                    `¡Hola! Tu cuenta en Gourmet QR ya está lista. 🛎️\n\n` +
+                    `¡Hola! Tu cuenta en Gourmet QR ya está lista.\n\n` +
                     `Ingresa a tu panel desde aquí:\n` +
-                    `🔗 ${window.location.origin}/admin\n\n` +
+                    `${window.location.origin}/admin\n\n` +
                     `Tus credenciales de acceso temporal:\n` +
-                    `📧 Usuario: ${createdTenant.email}\n` +
-                    `🔑 Contraseña: ${createdTenant.tempPass}\n\n` +
+                    `Usuario: ${createdTenant.email}\n` +
+                    `Contraseña: ${createdTenant.tempPass}\n\n` +
                     `Al ingresar, te guiaremos paso a paso en tu primera configuración de marca.`
                   );
                   window.open(`https://wa.me/?text=${message}`, '_blank');
@@ -491,7 +488,7 @@ export default function Superadmin() {
                 className="btn-primary"
                 style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '14px', fontSize: '15px', background: '#25D366', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)' }}
               >
-                💬 Enviar por WhatsApp
+                Enviar por WhatsApp
               </button>
             </div>
             <div className="sa-modal-footer">
