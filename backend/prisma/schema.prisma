@@ -47,18 +47,36 @@ model Category {
 }
 
 model Product {
-  id           String      @id @default(uuid())
+  id           String         @id @default(uuid())
   restaurantId String
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id])
   categoryId   String
-  category     Category    @relation(fields: [categoryId], references: [id])
+  category     Category       @relation(fields: [categoryId], references: [id])
   name         String
   description  String
-  price        Decimal     @db.Decimal(10, 2)
+  price        Decimal        @db.Decimal(10, 2)
   imageUrl     String?
-  tags         Json        // Ej. ["Vegano", "Sin Gluten"]
-  isActive     Boolean     @default(true)
+  tags         Json           // Ej. ["Vegano", "Sin Gluten"]
+  isActive     Boolean        @default(true)
   orderItems   OrderItem[]
+  sizes        ProductSize[]
+  extras       ProductExtra[]
+}
+
+model ProductSize {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String   // Ej. "Mediana", "Grande"
+  price     Decimal  @db.Decimal(10, 2)
+}
+
+model ProductExtra {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String   // Ej. "Porción de Arroz", "Extra Queso"
+  price     Decimal  @db.Decimal(10, 2)
 }
 
 model Order {

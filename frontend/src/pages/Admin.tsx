@@ -123,6 +123,17 @@ export default function Admin() {
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductTags, setNewProductTags] = useState('');
   const [newProductImageBase64, setNewProductImageBase64] = useState('');
+  
+  // Opciones Avanzadas: Tamaños y Extras
+  const [hasSizes, setHasSizes] = useState(false);
+  const [sizesList, setSizesList] = useState<{ name: string; price: string }[]>([]);
+  const [sizeNameInput, setSizeNameInput] = useState('');
+  const [sizePriceInput, setSizePriceInput] = useState('');
+
+  const [hasExtras, setHasExtras] = useState(false);
+  const [extrasList, setExtrasList] = useState<{ name: string; price: string }[]>([]);
+  const [extraNameInput, setExtraNameInput] = useState('');
+  const [extraPriceInput, setExtraPriceInput] = useState('');
 
   // Carga inicial de settings básicos
   useEffect(() => {
@@ -463,7 +474,9 @@ export default function Admin() {
         price: parseFloat(newProductPrice),
         categoryId: targetCategoryId,
         tags: tagsArr,
-        imageBase64: newProductImageBase64
+        imageBase64: newProductImageBase64,
+        sizes: hasSizes ? sizesList : undefined,
+        extras: hasExtras ? extrasList : undefined
       })
     })
       .then(res => {
@@ -487,6 +500,14 @@ export default function Admin() {
         setNewProductPrice('');
         setNewProductTags('');
         setNewProductImageBase64('');
+        setHasSizes(false);
+        setSizesList([]);
+        setSizeNameInput('');
+        setSizePriceInput('');
+        setHasExtras(false);
+        setExtrasList([]);
+        setExtraNameInput('');
+        setExtraPriceInput('');
         setShowAddProductForm(false);
       })
       .catch(err => {
@@ -1223,48 +1244,181 @@ export default function Admin() {
                       />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
-                      <div className="form-group-admin" style={{ textAlign: 'left' }}>
-                        <label style={{ fontSize: '12px' }}>Etiquetas (Separadas por coma)</label>
+                    <div className="form-group-admin" style={{ textAlign: 'left' }}>
+                      <label style={{ fontSize: '12px' }}>Etiquetas (Separadas por coma)</label>
+                      <input
+                        type="text"
+                        className="form-input-admin"
+                        style={{ width: '100%', padding: '8px 12px' }}
+                        placeholder="Ej. Picante, Popular, Vegano"
+                        value={newProductTags}
+                        onChange={e => setNewProductTags(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group-admin" style={{ textAlign: 'left', marginTop: '12px' }}>
+                      <label style={{ fontSize: '12px' }}>Imagen del Plato</label>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
-                          type="text"
-                          className="form-input-admin"
-                          style={{ width: '100%', padding: '8px 12px' }}
-                          placeholder="Ej. Picante, Popular, Vegano"
-                          value={newProductTags}
-                          onChange={e => setNewProductTags(e.target.value)}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProductFileChange}
+                          style={{ display: 'none' }}
+                          id="file-upload-input"
                         />
-                      </div>
-                      <div className="form-group-admin" style={{ textAlign: 'left' }}>
-                        <label style={{ fontSize: '12px' }}>Imagen del Plato</label>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleProductFileChange}
-                            style={{ display: 'none' }}
-                            id="file-upload-input"
-                          />
-                          <label
-                            htmlFor="file-upload-input"
+                        <label
+                          htmlFor="file-upload-input"
+                          className="btn-admin-secondary"
+                          style={{ padding: '8px 12px', fontSize: '12px', cursor: 'pointer', display: 'inline-block', width: '100%', textAlign: 'center', whiteSpace: 'nowrap' }}
+                        >
+                          📷 {newProductImageBase64 ? 'Imagen lista' : 'Subir Imagen'}
+                        </label>
+                        {newProductImageBase64 && (
+                          <button
+                            type="button"
+                            onClick={() => setNewProductImageBase64('')}
                             className="btn-admin-secondary"
-                            style={{ padding: '8px 12px', fontSize: '12px', cursor: 'pointer', display: 'inline-block', width: '100%', textAlign: 'center', whiteSpace: 'nowrap' }}
+                            style={{ color: 'var(--danger)', padding: '8px 10px', fontSize: '12px' }}
+                            title="Remover imagen"
                           >
-                            📷 {newProductImageBase64 ? 'Imagen lista' : 'Subir Imagen'}
-                          </label>
-                          {newProductImageBase64 && (
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* CONFIGURACIÓN DE TAMAÑOS (OPCIONAL) */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '16px 0', paddingTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff' }}>¿Tiene variaciones de tamaño?</label>
+                        <label className="switch" style={{ transform: 'scale(0.8)' }}>
+                          <input type="checkbox" checked={hasSizes} onChange={() => setHasSizes(!hasSizes)} />
+                          <span className="slider"></span>
+                        </label>
+                      </div>
+
+                      {hasSizes && (
+                        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(0,0,0,0.15)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Configura los tamaños (ej. Mediana, Grande, Familiar) y sus precios correspondientes.</span>
+                          
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                              type="text"
+                              placeholder="Ej. Mediana"
+                              className="form-input-admin"
+                              style={{ flex: 2, padding: '6px 10px', fontSize: '12px' }}
+                              value={sizeNameInput}
+                              onChange={e => setSizeNameInput(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Precio"
+                              className="form-input-admin"
+                              style={{ flex: 1, padding: '6px 10px', fontSize: '12px' }}
+                              value={sizePriceInput}
+                              onChange={e => setSizePriceInput(e.target.value)}
+                            />
                             <button
                               type="button"
-                              onClick={() => setNewProductImageBase64('')}
-                              className="btn-admin-secondary"
-                              style={{ color: 'var(--danger)', padding: '8px 10px', fontSize: '12px' }}
-                              title="Remover imagen"
+                              onClick={() => {
+                                if (!sizeNameInput.trim() || !sizePriceInput) return;
+                                setSizesList([...sizesList, { name: sizeNameInput.trim(), price: sizePriceInput }]);
+                                setSizeNameInput('');
+                                setSizePriceInput('');
+                              }}
+                              className="btn-admin-action"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
                             >
-                              ✕
+                              +
                             </button>
+                          </div>
+
+                          {sizesList.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                              {sizesList.map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '12px' }}>
+                                  <span>{item.name} — <strong>{settings.currency}{Number(item.price).toFixed(2)}</strong></span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSizesList(sizesList.filter((_, i) => i !== idx))}
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '12px' }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
+                      )}
+                    </div>
+
+                    {/* CONFIGURACIÓN DE EXTRAS / ADICIONALES (OPCIONAL) */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '16px 0', paddingTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff' }}>¿Permite añadir ingredientes extras / adicionales?</label>
+                        <label className="switch" style={{ transform: 'scale(0.8)' }}>
+                          <input type="checkbox" checked={hasExtras} onChange={() => setHasExtras(!hasExtras)} />
+                          <span className="slider"></span>
+                        </label>
                       </div>
+
+                      {hasExtras && (
+                        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(0,0,0,0.15)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Configura los adicionales que el cliente puede sumar (ej. Queso Extra, Porción de Papas).</span>
+                          
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                              type="text"
+                              placeholder="Ej. Porción de Papas"
+                              className="form-input-admin"
+                              style={{ flex: 2, padding: '6px 10px', fontSize: '12px' }}
+                              value={extraNameInput}
+                              onChange={e => setExtraNameInput(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Precio"
+                              className="form-input-admin"
+                              style={{ flex: 1, padding: '6px 10px', fontSize: '12px' }}
+                              value={extraPriceInput}
+                              onChange={e => setExtraPriceInput(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!extraNameInput.trim() || !extraPriceInput) return;
+                                setExtrasList([...extrasList, { name: extraNameInput.trim(), price: extraPriceInput }]);
+                                setExtraNameInput('');
+                                setExtraPriceInput('');
+                              }}
+                              className="btn-admin-action"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {extrasList.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                              {extrasList.map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '12px' }}>
+                                  <span>{item.name} — <strong>+{settings.currency}{Number(item.price).toFixed(2)}</strong></span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setExtrasList(extrasList.filter((_, i) => i !== idx))}
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '12px' }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>

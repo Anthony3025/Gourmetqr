@@ -13,6 +13,8 @@ interface Product {
   tags: string[]; // Ej. ["Vegano", "Sin Gluten", "Picante", "Popular"]
   categoryId: string;
   isActive: boolean;
+  sizes?: { id: string; name: string; price: number }[];
+  extras?: { id: string; name: string; price: number }[];
 }
 
 interface Category {
@@ -209,69 +211,38 @@ export const Menu: React.FC = () => {
     };
   }, [socket]);
 
-  // Generar opciones de personalización simuladas según el plato
+  // Generar opciones de personalización reales según la configuración en el Administrador
   const getCustomizationOptions = (product: Product) => {
-    if (product.name.toLowerCase().includes('hamburguesa')) {
-      return [
-        {
-          name: 'Término de la carne',
-          required: true,
-          type: 'radio',
-          choices: [
-            { name: 'Término Medio', extraPrice: 0 },
-            { name: 'Tres Cuartos', extraPrice: 0 },
-            { name: 'Bien Cocido', extraPrice: 0 }
-          ]
-        },
-        {
-          name: 'Ingredientes Extra',
-          required: false,
-          type: 'checkbox',
-          choices: [
-            { name: 'Agregar Queso Cheddar', extraPrice: 1.50 },
-            { name: 'Agregar Tocino Crujiente', extraPrice: 2.00 },
-            { name: 'Agregar Huevo Frito', extraPrice: 1.50 }
-          ]
-        }
-      ];
-    } else if (product.name.toLowerCase().includes('tacos')) {
-      return [
-        {
-          name: 'Tipo de Salsa',
-          required: true,
-          type: 'radio',
-          choices: [
-            { name: 'Salsa Verde (Suave)', extraPrice: 0 },
-            { name: 'Salsa Roja (Media)', extraPrice: 0 },
-            { name: 'Salsa Habanero (Muy Picante 🌶️)', extraPrice: 0.50 }
-          ]
-        }
-      ];
-    } else if (product.tags.includes('Vegano')) {
-      return [
-        {
-          name: 'Aderezo Extra',
-          required: false,
-          type: 'checkbox',
-          choices: [
-            { name: 'Aderezo de Limón Extra', extraPrice: 0.50 },
-            { name: 'Extra Aguacate', extraPrice: 2.00 }
-          ]
-        }
-      ];
-    } else {
-      return [
-        {
-          name: 'Porción / Tamaño',
-          required: true,
-          type: 'radio',
-          choices: [
-            { name: 'Tamaño Regular', extraPrice: 0 },
-            { name: 'Tamaño Grande (+ Pro)', extraPrice: 2.50 }
-          ]
-        }
-      ];
+    const options: any[] = [];
+
+    // Tamaños: Solo si el producto tiene variaciones de tamaño registradas en BD
+    if (product.sizes && product.sizes.length > 0) {
+      options.push({
+        name: 'Variaciones de Tamaño',
+        required: true,
+        type: 'radio',
+        // El precio extra del tamaño se calcula respecto al precio base
+        choices: product.sizes.map(s => ({
+          name: s.name,
+          extraPrice: Number(s.price) - Number(product.price)
+        }))
+      });
     }
+
+    // Extras/Adicionales: Solo si el producto tiene extras registrados en BD
+    if (product.extras && product.extras.length > 0) {
+      options.push({
+        name: 'Adicionales / Extras',
+        required: false,
+        type: 'checkbox',
+        choices: product.extras.map(e => ({
+          name: e.name,
+          extraPrice: Number(e.price)
+        }))
+      });
+    }
+
+    return options;
   };
 
   // Manejar click en producto
@@ -737,7 +708,7 @@ export const Menu: React.FC = () => {
                     {optGroup.required && <span className="option-required-badge">Obligatorio</span>}
                   </h4>
 
-                  {optGroup.choices.map((choice, cIdx) => {
+                  {optGroup.choices.map((choice: any, cIdx: number) => {
                     const isSelected = optGroup.type === 'radio'
                       ? modalOptions[optGroup.name]?.value === choice.name
                       : (modalOptions[optGroup.name]?.value || '').split(', ').includes(choice.name);
@@ -928,34 +899,20 @@ export const Menu: React.FC = () => {
           </main>
 
           <footer className="cart-summary-section">
-            <div className="summary-row">
-              <span>Subtotal</span>
-              <span>{currencySymbol} {calculateCartTotal().toFixed(2)}</span>
-            </div>
-            <div className="summary-row">
-              <span>IVA (10% Incluido)</span>
-              <span>{currencySymbol} {(calculateCartTotal() * 0.10).toFixed(2)}</span>
-            </div>
-            <div className="summary-row">
-              <span>Servicio (10%)</span>
-              <span>{currencySymbol} {(calculateCartTotal() * 0.10).toFixed(2)}</span>
-            </div>
             <div className="summary-row total">
-              <span>Total a Pagar</span>
-              <span className="total-price">{currencySymbol} {(calculateCartTotal() * 1.10).toFixed(2)}</span>
+              <span>Total</span>
+              <span className="total-price">{currencySymbol} {calculateCartTotal().toFixed(2)}</span>
             </div>
 
             <button 
               className="action-btn-large pulse-button" 
               style={{ marginTop: '16px' }}
               onClick={() => {
-                const totalAmountWithService = calculateCartTotal() * 1.10;
-                // Modificado para pasar el total real calculado
-                handleSendOrder(totalAmountWithService);
+                handleSendOrder(calculateCartTotal());
               }}
             >
               <span>Enviar a la Cocina</span>
-              <span>{currencySymbol} {(calculateCartTotal() * 1.10).toFixed(2)}</span>
+              <span>{currencySymbol} {calculateCartTotal().toFixed(2)}</span>
             </button>
           </footer>
         </div>

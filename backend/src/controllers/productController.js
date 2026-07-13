@@ -12,7 +12,11 @@ const getMenu = async (req, res) => {
       orderBy: { displayOrder: 'asc' },
       include: {
         products: {
-          orderBy: { name: 'asc' }
+          orderBy: { name: 'asc' },
+          include: {
+            sizes: true,
+            extras: true
+          }
         }
       }
     });
@@ -108,45 +112,61 @@ const deleteCategory = async (req, res) => {
 };
 
 const createProduct = async (req, res, io) => {
-  const { name, description, price, categoryId, tags, imageBase64 } = req.body;
-
-  if (!name || !price || !categoryId) {
-    return res.status(400).json({ error: 'Nombre, precio y categoría son requeridos.' });
-  }
-
-  try {
-    let imageUrl = null;
-
-    if (imageBase64 && imageBase64.startsWith('data:image')) {
-      const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      if (matches && matches.length === 3) {
-        const ext = matches[1].split('/')[1];
-        const base64Data = matches[2];
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        const filename = `product-${Date.now()}.${ext}`;
-        const filepath = path.join(__dirname, '../../uploads', filename);
-        
-        fs.writeFileSync(filepath, buffer);
-        
-        const host = req.headers.host;
-        const protocol = req.protocol;
-        imageUrl = `${protocol}://${host}/uploads/${filename}`;
-      }
-    }
-
-    const newProduct = await prisma.product.create({
-      data: {
-        restaurantId: req.restaurant.id,
-        categoryId,
-        name,
-        description: description || '',
-        price: parseFloat(price),
-        imageUrl,
-        tags: Array.isArray(tags) ? tags : [],
-        isActive: true
-      }
-    });
+    const { name, description, price, categoryId, tags, imageBase64, sizes, extras } = req.body;
+ 
+   if (!name || !price || !categoryId) {
+     return res.status(400).json({ error: 'Nombre, precio y categoría son requeridos.' });
+   }
+ 
+   try {
+     let imageUrl = null;
+ 
+     if (imageBase64 && imageBase64.startsWith('data:image')) {
+       const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+       if (matches && matches.length === 3) {
+         const ext = matches[1].split('/')[1];
+         const base64Data = matches[2];
+         const buffer = Buffer.from(base64Data, 'base64');
+         
+         const filename = `product-${Date.now()}.${ext}`;
+         const filepath = path.join(__dirname, '../../uploads', filename);
+         
+         fs.writeFileSync(filepath, buffer);
+         
+         const host = req.headers.host;
+         const protocol = req.protocol;
+         imageUrl = `${protocol}://${host}/uploads/${filename}`;
+       }
+     }
+ 
+     const newProduct = await prisma.product.create({
+       data: {
+         restaurantId: req.restaurant.id,
+         categoryId,
+         name,
+         description: description || '',
+         price: parseFloat(price),
+         imageUrl,
+         tags: Array.isArray(tags) ? tags : [],
+         isActive: true,
+         sizes: sizes && Array.isArray(sizes) ? {
+           create: sizes.map(s => ({
+             name: s.name,
+             price: parseFloat(s.price)
+           }))
+         } : undefined,
+         extras: extras && Array.isArray(extras) ? {
+           create: extras.map(e => ({
+             name: e.name,
+             price: parseFloat(e.price)
+           }))
+         } : undefined
+       },
+       include: {
+         sizes: true,
+         extras: true
+       }
+     });
 
     io.emit('product_created', newProduct);
     res.status(201).json(newProduct);
