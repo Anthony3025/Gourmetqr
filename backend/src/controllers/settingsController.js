@@ -57,6 +57,7 @@ const updateSettings = async (req, res, io) => {
       where: { id: req.restaurant.id },
       data: {
         name: name !== undefined ? name : req.restaurant.name,
+        slug: req.body.slug !== undefined ? req.body.slug : req.restaurant.slug,
         logoUrl: finalLogoUrl !== undefined ? finalLogoUrl : req.restaurant.logoUrl,
         accentColor: accentColor !== undefined ? accentColor : req.restaurant.accentColor,
         currency: currency !== undefined ? currency : req.restaurant.currency,

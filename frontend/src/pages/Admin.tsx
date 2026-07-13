@@ -256,10 +256,14 @@ export default function Admin() {
   const [onboardingSlug, setOnboardingSlug] = useState('');
   const [onboardingPassword, setOnboardingPassword] = useState('');
   const [onboardingCurrency, setOnboardingCurrency] = useState('$');
+  const [onboardingAccentColor, setOnboardingAccentColor] = useState('#ff5a1f');
+  const [onboardingKitchenPin, setOnboardingKitchenPin] = useState('1234');
+  const [onboardingLogoBase64, setOnboardingLogoBase64] = useState('');
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [onboardingError, setOnboardingError] = useState('');
   const [onboardingSubmitting, setOnboardingSubmitting] = useState(false);
   const [showOnboardingSuccess, setShowOnboardingSuccess] = useState(false);
+  const [savedSlug, setSavedSlug] = useState('');
 
   const [selectedCurrencyOption, setSelectedCurrencyOption] = useState('$');
   const [customCurrencySymbol, setCustomCurrencySymbol] = useState('');
@@ -349,6 +353,9 @@ export default function Admin() {
         name: onboardingName,
         slug: slugToSave,
         currency: onboardingCurrency,
+        accentColor: onboardingAccentColor,
+        kitchenPin: onboardingKitchenPin,
+        logoBase64: onboardingLogoBase64 || undefined,
         adminPassword: onboardingPassword
       })
     })
@@ -359,6 +366,8 @@ export default function Admin() {
         return res.json();
       })
       .then(() => {
+        // Guardar el slug final para el redirect
+        setSavedSlug(slugToSave);
         setShowOnboardingSuccess(true);
         setOnboardingSubmitting(false);
       })
@@ -824,141 +833,189 @@ export default function Admin() {
       {/* Asistente de Onboarding Wizard para Cuentas Nuevas */}
       {settings.name === "Nombre Temporal" && (
         <div className="login-overlay" style={{ zIndex: 1000, background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)' }}>
-          <div className="login-card" style={{ maxWidth: '500px', width: '90%', padding: '32px', textAlign: 'left' }}>
-            
+          <div className="login-card" style={{ maxWidth: '560px', width: '92%', padding: '32px', textAlign: 'left', maxHeight: '92vh', overflowY: 'auto' }}>
+
             {/* Header del Onboarding */}
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#fff' }}>¡Bienvenido a Gourmet QR!</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '6px' }}>Configuremos tu restaurante en menos de un minuto.</p>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#fff' }}>¡Bienvenido a Gourmet QR!</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>Configura tu restaurante antes de comenzar.</p>
+              {/* Indicador de pasos */}
+              {!showOnboardingSuccess && (
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '16px' }}>
+                  {[1,2,3,4].map(s => (
+                    <div key={s} style={{ width: '28px', height: '4px', borderRadius: '2px', background: onboardingStep >= s ? 'var(--accent)' : 'var(--border-color)', transition: 'background 0.3s' }} />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Pasos */}
             {!showOnboardingSuccess ? (
-              <form onSubmit={handleOnboardingSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <form onSubmit={handleOnboardingSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                {/* PASO 1: Contraseña */}
                 {onboardingStep === 1 && (
-                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 1: Cambia tu Contraseña Temporal</h3>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Crea una nueva contraseña segura para tus próximos accesos.</p>
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 1 de 4 — Contraseña</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Crea una contraseña segura. Esta reemplaza la contraseña temporal que recibiste.</p>
                     <div className="form-group-admin" style={{ margin: 0 }}>
                       <label>Nueva Contraseña</label>
-                      <input
-                        type="password"
-                        className="form-input-admin"
-                        placeholder="Mínimo 6 caracteres"
-                        value={onboardingPassword}
-                        onChange={e => setOnboardingPassword(e.target.value)}
-                        required
-                        minLength={6}
-                      />
+                      <input type="password" className="form-input-admin" placeholder="Mínimo 6 caracteres" value={onboardingPassword}
+                        onChange={e => setOnboardingPassword(e.target.value)} required minLength={6} />
                     </div>
-                    <button type="button" onClick={() => { if (onboardingPassword.length >= 6) setOnboardingStep(2); else alert('La contraseña debe tener al menos 6 caracteres.'); }} className="btn-admin-action" style={{ width: '100%', marginTop: '10px' }}>
-                      Continuar
+                    <button type="button" onClick={() => { if (onboardingPassword.length >= 6) setOnboardingStep(2); else alert('La contraseña debe tener al menos 6 caracteres.'); }} className="btn-admin-action" style={{ width: '100%' }}>
+                      Continuar →
                     </button>
                   </div>
                 )}
 
+                {/* PASO 2: Datos del Negocio */}
                 {onboardingStep === 2 && (
-                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 2: Datos de tu Negocio</h3>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Ingresa el nombre de tu restaurante y el enlace web.</p>
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 2 de 4 — Datos del Negocio</h3>
                     <div className="form-group-admin" style={{ margin: 0 }}>
-                      <label>Nombre del Restaurante / Negocio</label>
-                      <input
-                        type="text"
-                        className="form-input-admin"
-                        placeholder="Ej. Tacos El Rey"
-                        value={onboardingName}
-                        onChange={e => {
-                          setOnboardingName(e.target.value);
-                          setOnboardingSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-'));
-                        }}
-                        required
-                      />
+                      <label>Nombre del Restaurante</label>
+                      <input type="text" className="form-input-admin" placeholder="Ej. Tacos El Rey" value={onboardingName}
+                        onChange={e => { setOnboardingName(e.target.value); setOnboardingSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')); }} required />
                     </div>
                     <div className="form-group-admin" style={{ margin: 0 }}>
-                      <label>Enlace Web Personalizado (Slug)</label>
+                      <label>Enlace Web (Slug)</label>
                       <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0 12px' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)', userSelect: 'none' }}>/</span>
-                        <input
-                          type="text"
-                          className="form-input-admin"
-                          style={{ border: 'none', background: 'transparent', width: '100%', paddingLeft: '4px' }}
-                          placeholder="tacos-el-rey"
-                          value={onboardingSlug}
-                          onChange={e => setOnboardingSlug(e.target.value)}
-                          required
-                        />
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)', userSelect: 'none', whiteSpace: 'nowrap' }}>{window.location.origin}/</span>
+                        <input type="text" className="form-input-admin" style={{ border: 'none', background: 'transparent', width: '100%', paddingLeft: '4px' }}
+                          placeholder="tacos-el-rey" value={onboardingSlug} onChange={e => setOnboardingSlug(e.target.value)} required />
                       </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Solo letras minúsculas, números y guiones.</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                      <button type="button" onClick={() => setOnboardingStep(1)} className="btn-admin-secondary" style={{ width: '40%' }}>Atrás</button>
-                      <button type="button" onClick={() => { if (onboardingName && onboardingSlug) setOnboardingStep(3); else alert('Faltan campos obligatorios.'); }} className="btn-admin-action" style={{ width: '60%' }}>Continuar</button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button type="button" onClick={() => setOnboardingStep(1)} className="btn-admin-secondary" style={{ width: '40%' }}>← Atrás</button>
+                      <button type="button" onClick={() => { if (onboardingName && onboardingSlug) setOnboardingStep(3); else alert('Completa todos los campos.'); }} className="btn-admin-action" style={{ width: '60%' }}>Continuar →</button>
                     </div>
                   </div>
                 )}
 
+                {/* PASO 3: Identidad Visual */}
                 {onboardingStep === 3 && (
-                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 3: Símbolo de Moneda</h3>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Elige la moneda para mostrar los precios en tu menú.</p>
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 3 de 4 — Identidad Visual</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>Personaliza el color de tu marca y sube el logo de tu negocio.</p>
+
+                    {/* Color de acento */}
                     <div className="form-group-admin" style={{ margin: 0 }}>
-                      <label>Símbolo Monetario</label>
-                      <select
-                        className="form-input-admin"
-                        style={{ width: '100%', background: 'rgba(0, 0, 0, 0.2)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 16px', outline: 'none' }}
-                        value={onboardingCurrency}
-                        onChange={e => setOnboardingCurrency(e.target.value)}
-                      >
+                      <label>Color Principal de tu Marca</label>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <input type="color" value={onboardingAccentColor}
+                          onChange={e => { setOnboardingAccentColor(e.target.value); document.documentElement.style.setProperty('--accent', e.target.value); }}
+                          style={{ width: '52px', height: '44px', padding: '2px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer' }} />
+                        <input type="text" className="form-input-admin" style={{ flex: 1 }}
+                          value={onboardingAccentColor} onChange={e => { setOnboardingAccentColor(e.target.value); document.documentElement.style.setProperty('--accent', e.target.value); }}
+                          placeholder="#ff5a1f" />
+                      </div>
+                    </div>
+
+                    {/* Logo */}
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>Logo del Restaurante (Opcional)</label>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        {onboardingLogoBase64 ? (
+                          <img src={onboardingLogoBase64} alt="Logo preview" style={{ width: '52px', height: '52px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent)' }} />
+                        ) : (
+                          <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '20px', flexShrink: 0 }}>
+                            {onboardingName ? onboardingName[0].toUpperCase() : 'G'}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                          <input type="file" accept="image/*" id="onboarding-logo-input" style={{ display: 'none' }}
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onloadend = () => setOnboardingLogoBase64(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }} />
+                          <label htmlFor="onboarding-logo-input" className="btn-admin-secondary" style={{ cursor: 'pointer', textAlign: 'center', padding: '8px 12px', fontSize: '13px' }}>
+                            {onboardingLogoBase64 ? 'Cambiar Logo' : 'Subir Logo'}
+                          </label>
+                          {onboardingLogoBase64 && (
+                            <button type="button" onClick={() => setOnboardingLogoBase64('')} className="btn-admin-secondary"
+                              style={{ color: 'var(--danger)', fontSize: '12px', padding: '4px 8px' }}>Remover</button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                      <button type="button" onClick={() => setOnboardingStep(2)} className="btn-admin-secondary" style={{ width: '40%' }}>← Atrás</button>
+                      <button type="button" onClick={() => setOnboardingStep(4)} className="btn-admin-action" style={{ width: '60%' }}>Continuar →</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 4: Moneda y PIN de Cocina */}
+                {onboardingStep === 4 && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0 }}>Paso 4 de 4 — Moneda y Seguridad</h3>
+
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>Símbolo de Moneda</label>
+                      <select className="form-input-admin"
+                        style={{ width: '100%', background: 'rgba(0,0,0,0.2)', color: '#fff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 16px', outline: 'none' }}
+                        value={onboardingCurrency} onChange={e => setOnboardingCurrency(e.target.value)}>
                         {commonCurrencies.map((c, idx) => (
-                          <option key={idx} value={c.symbol} style={{ background: 'var(--bg-primary)', color: '#fff' }}>
-                            {c.label}
-                          </option>
+                          <option key={idx} value={c.symbol} style={{ background: 'var(--bg-primary)', color: '#fff' }}>{c.label}</option>
                         ))}
                       </select>
                     </div>
-                    {onboardingError && <div className="auth-error-msg" style={{ color: 'var(--danger)', fontSize: '13px', background: 'rgba(239, 68, 68, 0.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', textAlign: 'center' }}>{onboardingError}</div>}
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                      <button type="button" onClick={() => setOnboardingStep(2)} className="btn-admin-secondary" style={{ width: '40%' }}>Atrás</button>
+
+                    <div className="form-group-admin" style={{ margin: 0 }}>
+                      <label>PIN de Cocina (para que los cocineros accedan)</label>
+                      <input type="text" className="form-input-admin" placeholder="Ej. 1234" maxLength={6}
+                        value={onboardingKitchenPin} onChange={e => setOnboardingKitchenPin(e.target.value.replace(/\D/g, ''))} required />
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Solo números, máximo 6 dígitos.</span>
+                    </div>
+
+                    {onboardingError && (
+                      <div style={{ color: 'var(--danger)', fontSize: '13px', background: 'rgba(239,68,68,0.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)', textAlign: 'center' }}>
+                        {onboardingError}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                      <button type="button" onClick={() => setOnboardingStep(3)} className="btn-admin-secondary" style={{ width: '40%' }}>← Atrás</button>
                       <button type="submit" className="btn-admin-action" style={{ width: '60%' }} disabled={onboardingSubmitting}>
-                        {onboardingSubmitting ? 'Guardando...' : 'Completar Registro'}
+                        {onboardingSubmitting ? 'Guardando...' : 'Finalizar Configuración'}
                       </button>
                     </div>
                   </div>
                 )}
               </form>
+
             ) : (
-              /* Éxito de Onboarding */
+              /* Pantalla de Éxito */
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: 0 }}>¡Todo configurado!</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>Tu local ya está activo en Gourmet QR. Aquí tienes tus enlaces principales:</p>
+                  <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0 }}>¡Restaurante configurado!</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>Tu local ya está activo. Guarda estos enlaces:</p>
                 </div>
 
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
                   <div>
-                    <strong style={{ color: 'var(--accent)' }}>Menú para Clientes:</strong><br />
-                    <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
-                      {window.location.origin}/{onboardingSlug}/menu
-                    </span>
+                    <strong style={{ color: 'var(--accent)', display: 'block', marginBottom: '4px' }}>Menú para Clientes:</strong>
+                    <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{window.location.origin}/{savedSlug}/menu</span>
                   </div>
                   <div>
-                    <strong style={{ color: 'var(--accent)' }}>Pantalla para Cocineros:</strong><br />
-                    <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
-                      {window.location.origin}/{onboardingSlug}/cocina
-                    </span>
+                    <strong style={{ color: 'var(--accent)', display: 'block', marginBottom: '4px' }}>Pantalla de Cocina:</strong>
+                    <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{window.location.origin}/{savedSlug}/cocina</span>
                     <br />
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>PIN por defecto: <strong>1234</strong></span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PIN configurado: <strong>{onboardingKitchenPin}</strong></span>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    const finalSlug = onboardingSlug.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
-                    window.location.href = `/${finalSlug}/admin`;
-                  }}
+                  onClick={() => { window.location.href = `/${savedSlug}/admin`; }}
                   className="btn-admin-action"
-                  style={{ width: '100%', marginTop: '10px', padding: '14px' }}
+                  style={{ width: '100%', padding: '14px', fontSize: '15px' }}
                 >
                   Ir al Panel de Administración ↗
                 </button>
