@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE } from '../config';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SOCKET_URL = API_BASE;
 
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);

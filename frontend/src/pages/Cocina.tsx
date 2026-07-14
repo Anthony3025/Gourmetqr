@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSocket } from '../hooks/useSocket';
 import './Cocina.css';
+import { API_BASE } from '../config';
 
 // Interfaces
 interface Product {
@@ -69,8 +70,24 @@ const TimeElapsed: React.FC<{ createdAt: string }> = ({ createdAt }) => {
 
 export const Cocina: React.FC = () => {
   const { restaurantSlug: urlSlug } = useParams<{ restaurantSlug: string }>();
-  const restaurantSlug = urlSlug || 'gourmet-qr';
+  const restaurantSlug = urlSlug || '';
   const { socket, isConnected } = useSocket();
+
+  if (!restaurantSlug) {
+    return (
+      <div style={{
+        background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)',
+        color: '#fff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <p>Restaurante no especificado. Por favor, usa el enlace correcto para la cocina.</p>
+      </div>
+    );
+  }
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
@@ -100,14 +117,14 @@ export const Cocina: React.FC = () => {
 
   // Estados de Autenticación por PIN y Marca
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [correctPin, setCorrectPin] = useState('1234'); // Fallback por defecto
+  const [correctPin, setCorrectPin] = useState(''); // Cargar dinámicamente desde settings
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   // Cargar PIN y Logo desde settings del restaurante
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiBase = API_BASE;
     fetch(`${apiBase}/api/${restaurantSlug}/settings`)
       .then(res => res.json())
       .then(data => {
@@ -200,7 +217,7 @@ export const Cocina: React.FC = () => {
 
   // Cargar órdenes iniciales y entregas recientes
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiBase = API_BASE;
     
     // Cargar órdenes activas
     fetch(`${apiBase}/api/${restaurantSlug}/orders`)
@@ -308,7 +325,7 @@ export const Cocina: React.FC = () => {
     // Remover parpadeo si el usuario interactúa con la tarjeta
     setNewOrderIds(prev => prev.filter(id => id !== orderId));
 
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiBase = API_BASE;
     fetch(`${apiBase}/api/${restaurantSlug}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: {
@@ -336,7 +353,7 @@ export const Cocina: React.FC = () => {
 
   // Deshacer entrega y regresar pedido a la cocina
   const handleUndoDelivery = (orderId: string) => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiBase = API_BASE;
     fetch(`${apiBase}/api/${restaurantSlug}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: {
@@ -633,7 +650,7 @@ export const Cocina: React.FC = () => {
                               socket.emit('order_ready_to_collect', { orderId: order.id, restaurantSlug });
                             }
                             // Avanzamos directo a entregado (delivered) para no dejarlo en columna 3
-                            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                            const apiBase = API_BASE;
                             fetch(`${apiBase}/api/${restaurantSlug}/orders/${order.id}/status`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },

@@ -5,30 +5,63 @@ import { Cocina } from './pages/Cocina';
 import Admin from './pages/Admin';
 import Superadmin from './pages/Superadmin';
 
+import { API_BASE } from './config';
+
+function Portal() {
+  return (
+    <div style={{
+      background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)',
+      color: '#fff',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      padding: '20px',
+      textAlign: 'center'
+    }}>
+      <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '10px', color: '#ff5a1f' }}>Gourmet QR</h1>
+      <p style={{ color: '#a0aec0', maxWidth: '400px', fontSize: '15px', lineHeight: '1.6', margin: '0 0 20px 0' }}>
+        Plataforma de menú digital y comandas en tiempo real. Por favor, utiliza el enlace directo de tu restaurante (ej: /mi-restaurante/menu).
+      </p>
+      <div>
+        <a href="/superadmin" style={{ textDecoration: 'none', background: '#ff5a1f', color: '#fff', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-block' }}>
+          Portal Superadmin ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   // Cargar configuración de marca (Color de acento) al inicializar la aplicación
   useEffect(() => {
     const pathParts = window.location.pathname.split('/');
     const searchParams = new URLSearchParams(window.location.search);
-    // Resolver slug del path (ej: /gourmet-qr/menu) o query (ej: ?restaurant=gourmet-qr)
     const slug = pathParts[1] && ['menu', 'cocina', 'admin', 'superadmin'].indexOf(pathParts[1]) === -1
       ? pathParts[1]
-      : searchParams.get('restaurant') || 'gourmet-qr';
+      : searchParams.get('restaurant');
 
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    fetch(`${apiBase}/api/${slug}/settings`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.accentColor) {
-          document.documentElement.style.setProperty('--accent', data.accentColor);
-        }
-      })
-      .catch(err => console.error('Error al inicializar branding:', err));
+    if (slug) {
+      const apiBase = API_BASE;
+      fetch(`${apiBase}/api/${slug}/settings`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.accentColor) {
+            document.documentElement.style.setProperty('--accent', data.accentColor);
+          }
+        })
+        .catch(err => console.error('Error al cargar color de acento:', err));
+    }
   }, []);
 
   return (
     <Router>
       <Routes>
+        {/* Portal principal */}
+        <Route path="/" element={<Portal />} />
+
         {/* Ruta global de súper administración */}
         <Route path="/superadmin" element={<Superadmin />} />
 
@@ -37,13 +70,8 @@ function App() {
         <Route path="/:restaurantSlug/cocina" element={<Cocina />} />
         <Route path="/:restaurantSlug/admin" element={<Admin />} />
 
-        {/* Fallbacks para compatibilidad con las URLs locales anteriores */}
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/cocina" element={<Cocina />} />
-        <Route path="/admin" element={<Admin />} />
-        
         {/* Redirección por defecto */}
-        <Route path="*" element={<Navigate to="/gourmet-qr/menu" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

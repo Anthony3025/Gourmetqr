@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Superadmin.css';
+import { API_BASE } from '../config';
 
 interface Restaurant {
   id: string;
@@ -18,7 +19,7 @@ interface Restaurant {
 }
 
 export default function Superadmin() {
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const apiBase = API_BASE;
 
   // Autenticación
   const [token, setToken] = useState<string>(localStorage.getItem('superadmin_token') || '');
@@ -43,7 +44,7 @@ export default function Superadmin() {
   const [slug, setSlug] = useState('');
   const [accentColor, setAccentColor] = useState('#ff5a1f');
   const [currency, setCurrency] = useState('$');
-  const [kitchenPin, setKitchenPin] = useState('1234');
+  const [kitchenPin, setKitchenPin] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
   const [adminEmail, setAdminEmail] = useState('');
 
   const [submitError, setSubmitError] = useState('');

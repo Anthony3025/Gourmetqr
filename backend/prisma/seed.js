@@ -4,6 +4,12 @@ const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 
 async function main() {
+  // Guard de producción para evitar ejecutar el seed por accidente en producción
+  if (process.env.NODE_ENV === 'production') {
+    console.error('ERROR: No se permite ejecutar el script de seed en producción para proteger los datos reales.');
+    process.exit(1);
+  }
+
   // Limpiar base de datos existente
   await prisma.user.deleteMany({});
   await prisma.orderItem.deleteMany({});
@@ -15,7 +21,8 @@ async function main() {
   console.log('Base de datos limpiada.');
 
   // 1. Crear Restaurante por defecto (Multi-tenant ready)
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'admin123';
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
   const restaurant = await prisma.restaurant.create({
     data: {
       slug: 'gourmet-qr',
@@ -41,7 +48,8 @@ async function main() {
   console.log(`Usuario administrador creado: ${adminUser.email}`);
 
   // Crear usuario superadministrador del sistema
-  const superadminHashedPassword = await bcrypt.hash('superadmin123', 10);
+  const superadminPassword = process.env.SEED_SUPERADMIN_PASSWORD || 'superadmin123';
+  const superadminHashedPassword = await bcrypt.hash(superadminPassword, 10);
   const superadminUser = await prisma.user.create({
     data: {
       email: 'superadmin@gourmet.com',

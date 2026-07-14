@@ -5,6 +5,7 @@ import { useSocket } from '../hooks/useSocket';
 import html2pdf from 'html2pdf.js';
 import './Admin.css';
 import { OnboardingWizard } from '../components/OnboardingWizard';
+import { API_BASE } from '../config';
 
 interface Product {
   id: string;
@@ -53,8 +54,24 @@ const commonCurrencies = [
 export default function Admin() {
   const { socket } = useSocket();
   const { restaurantSlug: urlSlug } = useParams<{ restaurantSlug: string }>();
-  const restaurantSlug = urlSlug || 'gourmet-qr';
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const restaurantSlug = urlSlug || '';
+  const apiBase = API_BASE;
+
+  if (!restaurantSlug) {
+    return (
+      <div style={{
+        background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)',
+        color: '#fff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <p>Restaurante no especificado. Por favor, usa el enlace correcto para el panel administrativo.</p>
+      </div>
+    );
+  }
 
   // Autenticación por Correo y Contraseña
   const [token, setToken] = useState<string>(localStorage.getItem('admin_token') || '');
@@ -82,7 +99,7 @@ export default function Admin() {
     name: 'Gourmet QR',
     accentColor: '#ff5a1f',
     currency: '$',
-    kitchenPin: '1234',
+    kitchenPin: '',
     adminEmail: 'admin@gourmet.com'
   });
   const [newPassword, setNewPassword] = useState('');
@@ -495,7 +512,7 @@ export default function Admin() {
       const host = window.location.host;
       const protocol = window.location.protocol;
       const urlMesa = `${protocol}//${host}/menu?mesa=${mesaInput}&restaurant=${restaurantSlug}`;
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiBase = API_BASE;
       const qrApiUrl = `${apiBase}/api/qr/image?data=${encodeURIComponent(urlMesa)}`;
       setGeneratedQrUrl(qrApiUrl);
     } else if (mesaInput.trim() === '') {
@@ -520,7 +537,7 @@ export default function Admin() {
       for (let i = start; i <= end; i++) {
         const mesaStr = String(i);
         const urlMesa = `${protocol}//${host}/menu?mesa=${mesaStr}&restaurant=${restaurantSlug}`;
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const apiBase = API_BASE;
         const qrApiUrl = `${apiBase}/api/qr/image?data=${encodeURIComponent(urlMesa)}`;
         generatedList.push({
           mesa: mesaStr,

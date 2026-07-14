@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { useSocket } from '../hooks/useSocket';
 import './Menu.css';
+import { API_BASE } from '../config';
 
 // Interfaces
 interface Product {
@@ -48,8 +49,24 @@ interface Order {
 export const Menu: React.FC = () => {
   const { restaurantSlug: urlSlug } = useParams<{ restaurantSlug: string }>();
   const [searchParams] = useSearchParams();
-  const restaurantSlug = urlSlug || searchParams.get('restaurant') || 'gourmet-qr';
+  const restaurantSlug = urlSlug || searchParams.get('restaurant') || '';
   const mesa = searchParams.get('mesa') || '1'; // Enrutamiento por mesa dinámico (default: Mesa 1)
+
+  if (!restaurantSlug) {
+    return (
+      <div style={{
+        background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)',
+        color: '#fff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <p>Restaurante no especificado. Por favor, usa el enlace correcto de tu mesa.</p>
+      </div>
+    );
+  }
 
   const { socket } = useSocket();
 
@@ -121,7 +138,7 @@ export const Menu: React.FC = () => {
   useEffect(() => {
     const savedOrderId = localStorage.getItem(`gourmetqr_order_${restaurantSlug}`);
     if (savedOrderId) {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiBase = API_BASE;
       fetch(`${apiBase}/api/${restaurantSlug}/orders/${savedOrderId}`)
         .then((res) => {
           if (!res.ok) throw new Error('Orden no encontrada o finalizada');
@@ -151,7 +168,7 @@ export const Menu: React.FC = () => {
 
   // Cargar menú y ajustes iniciales
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiBase = API_BASE;
     fetch(`${apiBase}/api/${restaurantSlug}/settings`)
       .then((res) => res.json())
       .then((data) => {
@@ -443,7 +460,7 @@ export const Menu: React.FC = () => {
       })
     };
 
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiBase = API_BASE;
     fetch(`${apiBase}/api/${restaurantSlug}/orders`, {
       method: 'POST',
       headers: {
