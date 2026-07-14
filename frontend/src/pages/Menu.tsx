@@ -861,7 +861,7 @@ export const Menu: React.FC = () => {
 
       {/* Modal Personalizador de Plato */}
       {selectedProduct && (
-        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+        <div key="modal-product-customizer" className="modal-overlay" onClick={() => setSelectedProduct(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             {selectedProduct.imageUrl && (
               <div style={{ position: 'relative' }}>
@@ -976,7 +976,7 @@ export const Menu: React.FC = () => {
 
       {/* Barra Flotante de Carrito (si hay ítems) */}
       {cart.length > 0 && !showCart && (
-        <div className="cart-floating-bar glass pulse-button" onClick={() => setShowCart(true)}>
+        <div key="floating-cart-bar" className="cart-floating-bar glass pulse-button" onClick={() => setShowCart(true)}>
           <div className="cart-bar-left">
             <div className="cart-icon-wrapper">
               🛒
@@ -1098,6 +1098,7 @@ export const Menu: React.FC = () => {
 
       {/* Botón Flotante de Campana */}
       <button 
+        key="floating-service-bell"
         type="button" 
         className="service-bell-float animate-fade-in" 
         onClick={() => setShowServiceModal(true)}
@@ -1108,7 +1109,7 @@ export const Menu: React.FC = () => {
 
       {/* Modal de Solicitud de Servicio */}
       {showServiceModal && (
-        <div className="product-modal-overlay animate-fade-in" onClick={() => serviceRequestStatus === 'sent' ? null : setShowServiceModal(false)}>
+        <div key="modal-service-call" className="product-modal-overlay animate-fade-in" onClick={() => serviceRequestStatus === 'sent' ? null : setShowServiceModal(false)}>
           <div className="product-modal animate-scale-up" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '380px', width: '90%', padding: '24px', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
             
             {serviceRequestStatus === 'idle' ? (
@@ -1159,7 +1160,7 @@ export const Menu: React.FC = () => {
       )}
       {/* Modal de Consentimiento de Notificaciones (Popup Minimalista de un clic) */}
       {showNotificationModal && (
-        <div className="product-modal-overlay animate-fade-in" style={{ zIndex: 9999 }}>
+        <div key="modal-notification-permission" className="product-modal-overlay animate-fade-in" style={{ zIndex: 9999 }}>
           <div className="product-modal animate-scale-up" style={{ maxWidth: '340px', width: '85%', padding: '20px', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>
               Activa las notificaciones para seguir tu orden

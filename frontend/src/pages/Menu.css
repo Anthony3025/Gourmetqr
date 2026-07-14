@@ -47,12 +47,12 @@
   letter-spacing: 0.05em;
 }
 
-/* Categorías Deslizables */
 .categories-nav {
   display: flex;
   overflow-x: auto;
-  gap: 12px;
-  padding-bottom: 8px;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   scrollbar-width: none; /* Ocultar scrollbar en Firefox */
 }
 
@@ -61,29 +61,32 @@
 }
 
 .category-tab {
-  padding: 10px 16px 12px 16px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  color: var(--text-secondary);
+  padding: 8px 4px 12px 4px;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2.5px solid transparent !important;
+  border-radius: 0 !important;
+  color: var(--text-muted) !important;
   font-family: var(--font-title);
-  font-weight: 500;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 15.5px;
   white-space: nowrap;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
+  opacity: 0.85;
 }
 
 .category-tab:hover {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
+  opacity: 1;
 }
 
 .category-tab.active {
-  background: transparent;
-  color: var(--accent);
-  border-bottom: 2px solid var(--accent);
-  box-shadow: none;
+  color: var(--accent) !important;
+  border-bottom-color: var(--accent) !important;
+  box-shadow: none !important;
+  opacity: 1;
+  font-weight: 700;
 }
 
 /* Filtros Rápidos */
@@ -1015,6 +1018,9 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  margin: auto !important; /* Centrado forzado si el padre flex falla */
+  position: relative;
+  outline: none;
   animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
