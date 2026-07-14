@@ -101,6 +101,9 @@ export const Menu: React.FC = () => {
   const [orderStatus, setOrderStatus] = useState<string>(''); // pending, preparing, ready, delivered
   const [readyToCollect, setReadyToCollect] = useState(false);
   const [orderDispatched, setOrderDispatched] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [isAudioAllowed, setIsAudioAllowed] = useState(false);
+  const [globalAudioContext, setGlobalAudioContext] = useState<AudioContext | null>(null);
 
   // Estados de llamado de servicio
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -202,9 +205,17 @@ export const Menu: React.FC = () => {
   // Audio de notificación sutil del lado del cliente
   const playClientAlert = () => {
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const audioCtx = new AudioContextClass();
+      let audioCtx = globalAudioContext;
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) return;
+        audioCtx = new AudioContextClass();
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
@@ -219,7 +230,7 @@ export const Menu: React.FC = () => {
       
       // Vibración de apoyo
       try {
-        if (navigator.vibrate) {
+        if (isAudioAllowed && navigator.vibrate) {
           navigator.vibrate([150, 100, 150]);
         }
       } catch (err) {
@@ -230,16 +241,19 @@ export const Menu: React.FC = () => {
     }
   };
 
-  // Escuchar actualizaciones de la orden actual vía WebSockets
+  // Referencias para evitar re-suscripciones constantes de WebSockets en cada cambio de estado
+  const currentOrderRef = React.useRef<Order | null>(null);
+  currentOrderRef.current = currentOrder;
+
   useEffect(() => {
-    if (!socket || !currentOrder) return;
+    if (!socket) return;
 
     const handleOrderUpdated = (updatedOrder: Order) => {
-      if (updatedOrder.id === currentOrder.id) {
+      const activeOrder = currentOrderRef.current;
+      if (activeOrder && updatedOrder.id === activeOrder.id) {
         setCurrentOrder(updatedOrder);
         setOrderStatus(updatedOrder.status);
         
-        // El cliente solo recibe aviso acústico si la orden es despachada final (delivered)
         if (updatedOrder.status === 'delivered') {
           setOrderDispatched(true);
           playClientAlert();
@@ -248,7 +262,8 @@ export const Menu: React.FC = () => {
     };
 
     const handleOrderReadyToCollect = (data: { orderId: string }) => {
-      if (data.orderId === currentOrder.id) {
+      const activeOrder = currentOrderRef.current;
+      if (activeOrder && data.orderId === activeOrder.id) {
         setReadyToCollect(true);
         setOrderDispatched(true);
         playClientAlert();
@@ -262,7 +277,7 @@ export const Menu: React.FC = () => {
       socket.off('order_updated', handleOrderUpdated);
       socket.off('order_ready_to_collect', handleOrderReadyToCollect);
     };
-  }, [socket, currentOrder]);
+  }, [socket]);
 
   // Escuchar actualizaciones de stock, precios y branding vía WebSockets
   useEffect(() => {
@@ -445,9 +460,14 @@ export const Menu: React.FC = () => {
   };
 
   // Enviar orden a la cocina
-  const handleSendOrder = (totalAmountWithService: number) => {
+  const handleSendOrder = () => {
     if (cart.length === 0) return;
+    setShowNotificationModal(true);
+  };
 
+  const executeSendOrder = () => {
+    if (cart.length === 0) return;
+    const totalAmountWithService = calculateCartTotal();
     const orderData = {
       tableNumber: mesa,
       totalAmount: totalAmountWithService,
@@ -458,7 +478,7 @@ export const Menu: React.FC = () => {
           quantity: item.quantity,
           specialNotes: item.specialNotes,
           unitPrice: Number(item.product.price) + optionsExtraTotal,
-          options: item.selectedOptions // Se guarda como JSON
+          options: item.selectedOptions
         };
       })
     };
@@ -1058,7 +1078,7 @@ export const Menu: React.FC = () => {
               className="action-btn-large pulse-button" 
               style={{ marginTop: '16px', background: 'var(--accent)', color: getContrastColor(accentColor), boxShadow: `0 6px 20px ${accentColor}40` }}
               onClick={() => {
-                handleSendOrder(calculateCartTotal());
+                handleSendOrder();
               }}
             >
               <span>Enviar a la Cocina</span>
@@ -1126,6 +1146,75 @@ export const Menu: React.FC = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Modal de Consentimiento de Notificaciones (Popup Minimalista de un clic) */}
+      {showNotificationModal && (
+        <div className="product-modal-overlay animate-fade-in" style={{ zIndex: 9999 }}>
+          <div className="product-modal animate-scale-up" style={{ maxWidth: '340px', width: '85%', padding: '20px', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>
+              Activa las notificaciones para seguir tu orden
+            </h3>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button 
+                type="button" 
+                className="action-btn-large" 
+                style={{ 
+                  background: 'var(--accent)', 
+                  color: getContrastColor(accentColor), 
+                  flex: 1, 
+                  padding: '12px 8px', 
+                  fontSize: '14px', 
+                  justifyContent: 'center',
+                  boxShadow: `0 4px 12px ${accentColor}30`
+                }}
+                onClick={() => {
+                  try {
+                    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                    if (AudioContextClass) {
+                      const ctx = new AudioContextClass();
+                      // Activar sonido con una micro-oscilación de volumen cero (el móvil lo permite por interacción de click)
+                      const osc = ctx.createOscillator();
+                      const gain = ctx.createGain();
+                      osc.connect(gain);
+                      gain.connect(ctx.destination);
+                      gain.gain.setValueAtTime(0, ctx.currentTime);
+                      osc.start(0);
+                      osc.stop(0.01);
+                      setGlobalAudioContext(ctx);
+                    }
+                  } catch (e) {
+                    console.warn('AudioContext init error:', e);
+                  }
+                  setIsAudioAllowed(true);
+                  setShowNotificationModal(false);
+                  executeSendOrder();
+                }}
+              >
+                Aceptar
+              </button>
+              <button 
+                type="button" 
+                className="action-btn-large" 
+                style={{ 
+                  background: 'var(--bg-tertiary)', 
+                  border: '1px solid var(--border-color)', 
+                  color: 'var(--text-secondary)', 
+                  flex: 1, 
+                  padding: '12px 8px', 
+                  fontSize: '14px',
+                  justifyContent: 'center'
+                }}
+                onClick={() => {
+                  setIsAudioAllowed(false);
+                  setShowNotificationModal(false);
+                  executeSendOrder();
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
