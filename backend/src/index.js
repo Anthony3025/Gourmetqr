@@ -9,9 +9,13 @@ const fs = require('fs');
 
 const app = express();
 app.set('trust proxy', 1);
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',').map(o => o.trim()) 
-  : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+const allowedOrigins = [
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(o => o.trim()) : []),
+  'https://gourmetqr.vercel.app', // Agregamos tu dominio actual de Vercel como origen explícito para máxima seguridad
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173'
+].filter(Boolean);
 
 const server = http.createServer(app);
 const io = new Server(server, {
