@@ -52,7 +52,7 @@ export default function Superadmin() {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   // Éxito de creación (WhatsApp)
-  const [createdTenant, setCreatedTenant] = useState<{ email: string; tempPass: string } | null>(null);
+  const [createdTenant, setCreatedTenant] = useState<{ email: string; tempPass: string; slug: string } | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Verificar sesión en carga inicial por Cookies
@@ -174,7 +174,8 @@ export default function Superadmin() {
       .then(data => {
         setCreatedTenant({
           email: adminEmail,
-          tempPass: data.temporaryPassword
+          tempPass: data.temporaryPassword,
+          slug: data.restaurant.slug
         });
         setAdminEmail('');
         setShowCreateModal(false);
@@ -490,7 +491,7 @@ export default function Superadmin() {
               
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: '1px solid var(--sa-border)', marginBottom: '20px', fontFamily: 'monospace', fontSize: '13.5px', whiteSpace: 'pre-wrap', color: '#e2e8f0', lineHeight: '1.6' }}>
 {`Acceso Administrador:
-URL: ${window.location.origin}/admin
+URL: ${window.location.origin}/${createdTenant.slug}/admin
 Correo: ${createdTenant.email}
 Contraseña Temporal: ${createdTenant.tempPass}`}
               </div>
@@ -501,7 +502,7 @@ Contraseña Temporal: ${createdTenant.tempPass}`}
                   const message = encodeURIComponent(
                     `¡Hola! Tu cuenta en Gourmet QR ya está lista.\n\n` +
                     `Ingresa a tu panel desde aquí:\n` +
-                    `${window.location.origin}/admin\n\n` +
+                    `${window.location.origin}/${createdTenant.slug}/admin\n\n` +
                     `Tus credenciales de acceso temporal:\n` +
                     `Usuario: ${createdTenant.email}\n` +
                     `Contraseña: ${createdTenant.tempPass}\n\n` +
