@@ -74,8 +74,20 @@ export const Cocina: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [recentDeliveries, setRecentDeliveries] = useState<Order[]>([]);
+  const [recentDeliveries, setRecentDeliveries] = useState<Order[]>(() => {
+    try {
+      const saved = localStorage.getItem(`gourmetqr_recent_deliveries_${restaurantSlug}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [deliverySelectorOrderId, setDeliverySelectorOrderId] = useState<string | null>(null);
+
+  // Guardar historial de entregados cuando cambie
+  useEffect(() => {
+    localStorage.setItem(`gourmetqr_recent_deliveries_${restaurantSlug}`, JSON.stringify(recentDeliveries));
+  }, [recentDeliveries, restaurantSlug]);
 
   // Estados de Autenticación por PIN y Marca
   const [isAuthenticated, setIsAuthenticated] = useState(false);
