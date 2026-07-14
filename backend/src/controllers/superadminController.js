@@ -86,13 +86,64 @@ const deleteRestaurant = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await prisma.restaurant.delete({
-      where: { id }
+    // Borrar de forma secuencial todas las dependencias del negocio para evitar violaciones de clave foránea
+    await prisma.$transaction(async (tx) => {
+      // 1. Borrar detalles de las órdenes
+      await tx.orderItem.deleteMany({
+        where: {
+          order: {
+            restaurantId: id
+          }
+        }
+      });
+
+      // 2. Borrar órdenes
+      await tx.order.deleteMany({
+        where: { restaurantId: id }
+      });
+
+      // 3. Borrar tamaños y extras de los productos
+      await tx.productSize.deleteMany({
+        where: {
+          product: {
+            restaurantId: id
+          }
+        }
+      });
+
+      await tx.productExtra.deleteMany({
+        where: {
+          product: {
+            restaurantId: id
+          }
+        }
+      });
+
+      // 4. Borrar productos
+      await tx.product.deleteMany({
+        where: { restaurantId: id }
+      });
+
+      // 5. Borrar categorías
+      await tx.category.deleteMany({
+        where: { restaurantId: id }
+      });
+
+      // 6. Borrar usuarios vinculados al restaurante
+      await tx.user.deleteMany({
+        where: { restaurantId: id }
+      });
+
+      // 7. Finalmente, eliminar el restaurante
+      await tx.restaurant.delete({
+        where: { id }
+      });
     });
-    res.json({ success: true, message: 'Restaurante eliminado con éxito.' });
+
+    res.json({ success: true, message: 'Restaurante y dependencias eliminados con éxito.' });
   } catch (error) {
     console.error('Error al eliminar restaurante:', error);
-    res.status(500).json({ error: 'Error interno al eliminar el restaurante.' });
+    res.status(500).json({ error: 'Error interno al eliminar el restaurante y sus dependencias.' });
   }
 };
 
