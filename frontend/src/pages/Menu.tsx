@@ -84,6 +84,7 @@ export const Menu: React.FC = () => {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>(''); // pending, preparing, ready, delivered
   const [readyToCollect, setReadyToCollect] = useState(false);
+  const [orderDispatched, setOrderDispatched] = useState(false);
 
   // Estados de llamado de servicio
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -195,8 +196,9 @@ export const Menu: React.FC = () => {
         setCurrentOrder(updatedOrder);
         setOrderStatus(updatedOrder.status);
         
-        // Si el estado cambia a listo, reproducir aviso acústico
-        if (updatedOrder.status === 'ready' || updatedOrder.status === 'delivered') {
+        // El cliente solo recibe aviso acústico si la orden es despachada final (delivered)
+        if (updatedOrder.status === 'delivered') {
+          setOrderDispatched(true);
           playClientAlert();
         }
       }
@@ -205,6 +207,7 @@ export const Menu: React.FC = () => {
     const handleOrderReadyToCollect = (data: { orderId: string }) => {
       if (data.orderId === currentOrder.id) {
         setReadyToCollect(true);
+        setOrderDispatched(true);
         playClientAlert();
       }
     };
@@ -558,7 +561,7 @@ export const Menu: React.FC = () => {
         </div>
 
         {/* BANNER DE AUTO-SERVICIO O AVISO DE MESERO */}
-        {orderStatus === 'ready' && (
+        {orderDispatched && (
           <div style={{ marginTop: '24px', width: '100%' }}>
             {readyToCollect ? (
               <div className="animate-fade-in" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '16px' }}>
@@ -571,6 +574,7 @@ export const Menu: React.FC = () => {
                   style={{ background: '#3b82f6', marginTop: '16px' }}
                   onClick={() => {
                     setReadyToCollect(false);
+                    setOrderDispatched(false);
                     setCurrentOrder(null);
                     setOrderStatus('');
                   }}
@@ -587,6 +591,7 @@ export const Menu: React.FC = () => {
                   className="action-btn-large pulse-button" 
                   style={{ marginTop: '16px' }}
                   onClick={() => {
+                    setOrderDispatched(false);
                     setCurrentOrder(null);
                     setOrderStatus('');
                   }}

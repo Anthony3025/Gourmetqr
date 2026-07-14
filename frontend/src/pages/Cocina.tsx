@@ -504,7 +504,7 @@ export const Cocina: React.FC = () => {
                     className="kanban-action-btn start-prep"
                     onClick={() => handleAdvanceStatus(order.id, order.status)}
                   >
-                    Preparar →
+                    Aceptar y Preparar
                   </button>
                 </div>
               </div>
