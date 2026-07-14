@@ -9,10 +9,14 @@ const fs = require('fs');
 
 const app = express();
 app.set('trust proxy', 1);
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(o => o.trim()) 
+  : '*';
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PATCH']
   }
 });
@@ -20,7 +24,11 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3001;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Asegurar que la carpeta de subidas existe
@@ -48,6 +56,25 @@ app.get('/api/qr/base64', async (req, res) => {
   } catch (error) {
     console.error('Error al generar QR base64:', error);
     res.status(500).json({ error: 'Error al generar el código QR.' });
+  }
+});
+
+// --- RUTA UTILERÍA: Generador de QR local en formato de Imagen PNG directo ---
+app.get('/api/qr/image', async (req, res) => {
+  const { data } = req.query;
+  if (!data) {
+    return res.status(400).send('El parámetro data es requerido.');
+  }
+  try {
+    const buffer = await QRCode.toBuffer(data, {
+      width: 300,
+      margin: 1
+    });
+    res.type('png');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Error al generar imagen de QR:', error);
+    res.status(500).send('Error al generar el código QR.');
   }
 });
 
