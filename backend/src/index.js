@@ -31,6 +31,24 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Middleware simple para parsear cookies manualmente sin dependencias
+app.use((req, res, next) => {
+  const list = {};
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach(cookie => {
+      let [name, ...rest] = cookie.split('=');
+      name = name ? name.trim() : '';
+      if (!name) return;
+      const value = rest.join('=').trim();
+      if (!value) return;
+      list[name] = decodeURIComponent(value);
+    });
+  }
+  req.cookies = list;
+  next();
+});
+
 // Asegurar que la carpeta de subidas existe
 fs.mkdirSync(path.join(__dirname, '../uploads'), { recursive: true });
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

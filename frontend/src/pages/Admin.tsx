@@ -74,8 +74,9 @@ export default function Admin() {
   }
 
   // Autenticación por Correo y Contraseña
-  const [token, setToken] = useState<string>(localStorage.getItem('admin_token') || '');
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('admin_token'));
+  const [token, setToken] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
@@ -138,8 +139,9 @@ export default function Admin() {
   const [extraNameInput, setExtraNameInput] = useState('');
   const [extraPriceInput, setExtraPriceInput] = useState('');
 
-  // Carga inicial de settings básicos
+  // Carga inicial de settings básicos y verificación de sesión
   useEffect(() => {
+    // 1. Cargar ajustes básicos del restaurante
     fetch(`${apiBase}/api/${restaurantSlug}/settings`)
       .then(res => res.json())
       .then((data: Settings) => {
@@ -153,6 +155,25 @@ export default function Admin() {
         }
       })
       .catch(err => console.error('Error al obtener ajustes:', err));
+
+    // 2. Verificar si hay sesión activa en cookies
+    fetch(`${apiBase}/api/auth/me`)
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(data => {
+        if (data.success && (data.user.role === 'admin' || data.user.role === 'superadmin')) {
+          setToken(data.token || 'session_active');
+          setIsAuthenticated(true);
+        }
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      })
+      .finally(() => {
+        setIsLoadingSession(false);
+      });
   }, []);
 
   // Carga de datos operativos al autenticar
@@ -170,7 +191,7 @@ export default function Admin() {
       .catch(err => console.error('Error al cargar menú en admin:', err));
 
     // Cargar estadísticas (protegido por JWT)
-    const activeToken = token || localStorage.getItem('admin_token');
+    const activeToken = token;
     if (!activeToken) return;
     fetch(`${apiBase}/api/${restaurantSlug}/stats`, {
       headers: { 'Authorization': `Bearer ${activeToken}` }
@@ -191,7 +212,7 @@ export default function Admin() {
     if (!socket || !isAuthenticated) return;
 
     const handleRefreshStats = () => {
-      const activeToken = token || localStorage.getItem('admin_token');
+      const activeToken = token;
       if (!activeToken) return;
       fetch(`${apiBase}/api/${restaurantSlug}/stats`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
@@ -239,7 +260,6 @@ export default function Admin() {
         if (data.user.role !== 'admin' && data.user.role !== 'superadmin') {
           throw new Error('No tienes permisos para acceder al panel de administración.');
         }
-        localStorage.setItem('admin_token', data.token);
         setToken(data.token);
         setIsAuthenticated(true);
         setAuthError('');
@@ -591,13 +611,23 @@ export default function Admin() {
 
   // Cerrar Sesión
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    setToken('');
-    setIsAuthenticated(false);
-    setEmailInput('');
-    setPasswordInput('');
-    setActiveTab('overview');
+    fetch(`${apiBase}/api/auth/logout`, { method: 'POST' })
+      .finally(() => {
+        setToken('');
+        setIsAuthenticated(false);
+        setEmailInput('');
+        setPasswordInput('');
+        setActiveTab('overview');
+      });
   };
+
+  if (isLoadingSession) {
+    return (
+      <div className="login-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)' }}>
+        <p style={{ color: '#fff', fontSize: '15px', fontWeight: 'bold' }}>Cargando panel...</p>
+      </div>
+    );
+  }
 
   // PANTALLA 1: Login de Correo y Contraseña
   if (!isAuthenticated) {

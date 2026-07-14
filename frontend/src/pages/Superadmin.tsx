@@ -22,8 +22,9 @@ export default function Superadmin() {
   const apiBase = API_BASE;
 
   // Autenticación
-  const [token, setToken] = useState<string>(localStorage.getItem('superadmin_token') || '');
+  const [token, setToken] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
@@ -54,14 +55,27 @@ export default function Superadmin() {
   const [createdTenant, setCreatedTenant] = useState<{ email: string; tempPass: string } | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Verificar token en carga inicial
+  // Verificar sesión en carga inicial por Cookies
   useEffect(() => {
-    if (token) {
-      // Intentar validar decodificando el rol o haciendo un fetch simple
-      setIsAuthenticated(true);
-      fetchRestaurants(token);
-    }
-  }, [token]);
+    fetch(`${apiBase}/api/auth/me`)
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(data => {
+        if (data.success && data.user.role === 'superadmin') {
+          setToken(data.token || 'session_active');
+          setIsAuthenticated(true);
+          fetchRestaurants(data.token || 'session_active');
+        }
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      })
+      .finally(() => {
+        setIsLoadingSession(false);
+      });
+  }, []);
 
   const fetchRestaurants = (authToken: string) => {
     setLoadingData(true);
@@ -111,7 +125,6 @@ export default function Superadmin() {
       })
       .then(data => {
         if (data.user && data.user.role === 'superadmin') {
-          localStorage.setItem('superadmin_token', data.token);
           setToken(data.token);
           setIsAuthenticated(true);
         } else {
@@ -127,10 +140,12 @@ export default function Superadmin() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('superadmin_token');
-    setToken('');
-    setIsAuthenticated(false);
-    setRestaurants([]);
+    fetch(`${apiBase}/api/auth/logout`, { method: 'POST' })
+      .finally(() => {
+        setToken('');
+        setIsAuthenticated(false);
+        setRestaurants([]);
+      });
   };
 
   const handleCreateRestaurant = (e: React.FormEvent) => {
@@ -276,6 +291,14 @@ export default function Superadmin() {
         setSubmitLoading(false);
       });
   };
+
+  if (isLoadingSession) {
+    return (
+      <div className="superadmin-login-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <p style={{ color: '#fff', fontSize: '15px', fontWeight: 'bold' }}>Cargando panel...</p>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

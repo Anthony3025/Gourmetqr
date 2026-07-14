@@ -7,6 +7,16 @@ import Superadmin from './pages/Superadmin';
 
 import { API_BASE } from './config';
 
+// Interceptar todas las llamadas a fetch para adjuntar cookies de forma automática (HttpOnly)
+const originalFetch = window.fetch;
+window.fetch = function (input, init = {}) {
+  const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+  if (url.includes('/api/')) {
+    init.credentials = 'include';
+  }
+  return originalFetch(input, init);
+};
+
 function Portal() {
   return (
     <div style={{

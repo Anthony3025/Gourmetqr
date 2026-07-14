@@ -8,7 +8,12 @@ if (!JWT_SECRET) {
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  let token = authHeader && authHeader.split(' ')[1];
+
+  // Si no viene en el header, intentar leerlo de las cookies
+  if (!token && req.cookies) {
+    token = req.cookies.admin_token || req.cookies.superadmin_token;
+  }
 
   if (!token) {
     return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });

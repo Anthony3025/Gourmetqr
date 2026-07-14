@@ -63,6 +63,16 @@ const login = async (req, res) => {
       { expiresIn: '8h' }
     );
 
+    // Configurar cookie segura con el token JWT
+    const isSuper = user.role === 'superadmin';
+    const cookieName = isSuper ? 'superadmin_token' : 'admin_token';
+    res.cookie(cookieName, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 8 * 60 * 60 * 1000 // 8 horas
+    });
+
     return res.json({
       success: true,
       token,
@@ -85,6 +95,54 @@ const login = async (req, res) => {
   }
 };
 
+const getMe = async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'No autenticado.' });
+  }
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { restaurant: true }
+    });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+    return res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      restaurant: user.restaurant ? {
+        id: user.restaurant.id,
+        name: user.restaurant.name,
+        slug: user.restaurant.slug
+      } : null
+    });
+  } catch (error) {
+    console.error('Error en getMe:', error);
+    res.status(500).json({ error: 'Error al verificar sesión.' });
+  }
+};
+
+const logout = (req, res) => {
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  });
+  res.clearCookie('superadmin_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  });
+  return res.json({ success: true });
+};
+
 module.exports = {
-  login
+  login,
+  getMe,
+  logout
 };
