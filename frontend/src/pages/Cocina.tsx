@@ -183,6 +183,11 @@ export const Cocina: React.FC = () => {
       if (!AudioContextClass) return;
       
       const audioCtx = new AudioContextClass();
+      if (!audioCtx || audioCtx.state === 'suspended') {
+        // En móviles, si está suspendido o bloqueado, cerramos y salimos sin fallar
+        audioCtx.close();
+        return;
+      }
       
       // Primer tono (agudo)
       const osc1 = audioCtx.createOscillator();

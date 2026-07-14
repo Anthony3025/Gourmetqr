@@ -74,7 +74,6 @@ export const Menu: React.FC = () => {
   const [menu, setMenu] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('');
-  const [activeFilter, setActiveFilter] = useState<string>('Todos');
   const [currencySymbol, setCurrencySymbol] = useState('$');
   const [restaurantName, setRestaurantName] = useState('Gourmet QR');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -219,8 +218,12 @@ export const Menu: React.FC = () => {
       osc.stop(audioCtx.currentTime + 0.6);
       
       // Vibración de apoyo
-      if (navigator.vibrate) {
-        navigator.vibrate([150, 100, 150]);
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate([150, 100, 150]);
+        }
+      } catch (err) {
+        console.warn('Vibration blocked by browser rules:', err);
       }
     } catch (e) {
       console.warn('Bloqueo de reproducción automática de audio cliente.', e);
@@ -498,16 +501,7 @@ export const Menu: React.FC = () => {
 
   // Filtrar productos
   const getFilteredProducts = (category: Category) => {
-    if (!category.products) return [];
-    
-    return category.products.filter(product => {
-      if (activeFilter === 'Todos') return true;
-      if (activeFilter === 'Vegano') return product.tags.includes('Vegano');
-      if (activeFilter === 'Sin Gluten') return product.tags.includes('Sin Gluten');
-      if (activeFilter === 'Picante') return product.tags.includes('Picante');
-      if (activeFilter === 'Popular') return product.tags.includes('Popular');
-      return true;
-    });
+    return category.products || [];
   };
 
   if (loading) {
@@ -732,21 +726,7 @@ export const Menu: React.FC = () => {
         </nav>
       </header>
 
-      {/* Filtros Inteligentes */}
-      <section className="filters-section">
-        {['Todos', 'Popular', 'Vegano', 'Sin Gluten', 'Picante'].map((filter) => (
-          <button
-            key={filter}
-            className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
-            style={activeFilter === filter ? { background: 'var(--accent)', color: getContrastColor(accentColor), borderColor: 'var(--accent)' } : {}}
-            onClick={() => setActiveFilter(filter)}
-          >
-            {filter === 'Picante' && '🌶️ '}
-            {filter === 'Vegano' && '🥬 '}
-            {filter}
-          </button>
-        ))}
-      </section>
+      {/* Categorías reales del Administrador controlan la visualización del menú */}
 
       {/* Lista de Productos */}
       <main className="menu-products">
