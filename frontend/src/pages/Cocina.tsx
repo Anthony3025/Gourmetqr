@@ -75,6 +75,7 @@ export const Cocina: React.FC = () => {
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [recentDeliveries, setRecentDeliveries] = useState<Order[]>([]);
+  const [deliverySelectorOrderId, setDeliverySelectorOrderId] = useState<string | null>(null);
 
   // Estados de Autenticación por PIN y Marca
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -559,16 +560,73 @@ export const Cocina: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="order-card-footer">
-                  <div className="order-card-total">
-                    Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                <div className="order-card-footer" style={{ flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <div className="order-card-total">
+                      Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                    </div>
                   </div>
-                  <button 
-                    className="kanban-action-btn ready-prep"
-                    onClick={() => handleAdvanceStatus(order.id, order.status)}
-                  >
-                    Listo ✔
-                  </button>
+                  {deliverySelectorOrderId === order.id ? (
+                    <div className="animate-scale-up" style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '8px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', textAlign: 'center', fontWeight: 'bold' }}>¿CÓMO SE ENTREGARÁ EL PEDIDO?</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <button
+                          type="button"
+                          className="kanban-action-btn"
+                          style={{ background: 'var(--accent)', color: '#fff', fontSize: '10px', padding: '8px 2px' }}
+                          onClick={() => {
+                            // Mover a la columna 3 (Listos para Entregar) en espera de mesero
+                            setDeliverySelectorOrderId(null);
+                            handleAdvanceStatus(order.id, order.status);
+                          }}
+                        >
+                          🛎️ Lleva Mesero
+                        </button>
+                        <button
+                          type="button"
+                          className="kanban-action-btn"
+                          style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', padding: '8px 2px' }}
+                          onClick={() => {
+                            // Despachar inmediatamente para Auto-Servicio/Barra
+                            setDeliverySelectorOrderId(null);
+                            if (socket) {
+                              socket.emit('order_ready_to_collect', { orderId: order.id, restaurantSlug });
+                            }
+                            // Avanzamos directo a entregado (delivered) para no dejarlo en columna 3
+                            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                            fetch(`${apiBase}/api/${restaurantSlug}/orders/${order.id}/status`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'delivered' })
+                            })
+                              .then(res => res.json())
+                              .then(() => {
+                                setRecentDeliveries(prev => [order, ...prev].slice(0, 5));
+                                setOrders(prev => prev.filter(o => o.id !== order.id));
+                              })
+                              .catch(err => console.error('Error al auto-entregar barra:', err));
+                          }}
+                        >
+                          📢 Retira en Barra
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-admin-secondary"
+                        style={{ fontSize: '10px', padding: '4px' }}
+                        onClick={() => setDeliverySelectorOrderId(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      className="kanban-action-btn ready-prep"
+                      onClick={() => setDeliverySelectorOrderId(order.id)}
+                    >
+                      Listo ✔
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -580,16 +638,16 @@ export const Cocina: React.FC = () => {
           <header className="column-header">
             <div className="column-title-group">
               <span className="column-dot ready"></span>
-              <h3 className="column-title">Listos para Entregar</h3>
+              <h3 className="column-title">Listo para Entregar</h3>
             </div>
             <span className="column-count-badge">{readyOrders.length}</span>
           </header>
 
           <div className="column-cards-container">
             {readyOrders.map(order => (
-              <div key={order.id} className="order-card" style={{ borderColor: 'var(--success)' }}>
+              <div key={order.id} className="order-card" style={{ borderColor: '#f59e0b', background: 'rgba(245, 158, 11, 0.03)' }}>
                 <div className="order-card-header">
-                  <div className="order-card-table">MESA {order.tableNumber}</div>
+                  <div className="order-card-table" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>MESA {order.tableNumber}</div>
                   <div className="order-card-time">
                     <TimeElapsed createdAt={order.createdAt} />
                   </div>
@@ -627,30 +685,15 @@ export const Cocina: React.FC = () => {
                     <div className="order-card-total">
                       Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
                     </div>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#f59e0b', animation: 'pulse 1.5s infinite' }}>⚠️ Esperando Mesero</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
-                    <button 
-                      className="kanban-action-btn"
-                      style={{ background: 'var(--success)', color: '#fff', fontSize: '11px', padding: '10px 4px', whiteSpace: 'normal', height: 'auto', lineHeight: '1.2' }}
-                      onClick={() => handleAdvanceStatus(order.id, order.status)}
-                    >
-                      ✓ Entregado a Mesero
-                    </button>
-                    <button 
-                      className="kanban-action-btn"
-                      style={{ background: '#3b82f6', color: '#fff', fontSize: '11px', padding: '10px 4px', whiteSpace: 'normal', height: 'auto', lineHeight: '1.2' }}
-                      onClick={() => {
-                        // Avisar al cliente por websocket para retirar en barra
-                        if (socket) {
-                          socket.emit('order_ready_to_collect', { orderId: order.id, restaurantSlug });
-                        }
-                        // Avanzamos el estado a listo pero le dejamos al cliente el banner de aviso
-                        handleAdvanceStatus(order.id, order.status);
-                      }}
-                    >
-                      📢 Avisar para Retirar
-                    </button>
-                  </div>
+                  <button 
+                    className="kanban-action-btn"
+                    style={{ background: '#f59e0b', color: '#fff', fontSize: '12px', padding: '10px 4px', width: '100%' }}
+                    onClick={() => handleAdvanceStatus(order.id, order.status)}
+                  >
+                    ✓ Entregado a Mesa
+                  </button>
                 </div>
               </div>
             ))}
