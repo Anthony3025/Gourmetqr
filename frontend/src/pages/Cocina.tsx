@@ -212,11 +212,13 @@ export const Cocina: React.FC = () => {
         console.error('Error al cargar órdenes:', err);
       });
 
-    // Cargar entregas recientes
+    // Cargar entregas recientes (solo sobreescribir si el servidor devuelve datos)
     fetch(`${apiBase}/api/${restaurantSlug}/orders/recent`)
       .then(res => res.json())
       .then((data: Order[]) => {
-        setRecentDeliveries(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setRecentDeliveries(data);
+        }
       })
       .catch(err => {
         console.error('Error al cargar entregas recientes:', err);
@@ -752,7 +754,7 @@ export const Cocina: React.FC = () => {
                     <span style={{ color: 'var(--text-muted)' }}>${Number(order.totalAmount).toFixed(2)}</span>
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                    {order.items.map(i => `${i.quantity}x ${i.product.name}`).join(', ')}
+                    {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
                   </div>
                   <button
                     type="button"

@@ -86,6 +86,11 @@ io.on('connection', (socket) => {
     io.emit('service_resolved', data); // data: { id, restaurantSlug }
   });
 
+  // Retransmitir señal de auto-servicio (Retira en Barra) al cliente del menú
+  socket.on('order_ready_to_collect', (data) => {
+    io.emit('order_ready_to_collect', data); // data: { orderId, restaurantSlug }
+  });
+
   socket.on('disconnect', () => {
     console.log(`WebSocket desconectado: ${socket.id}`);
   });

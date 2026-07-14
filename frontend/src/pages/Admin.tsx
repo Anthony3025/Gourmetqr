@@ -691,8 +691,19 @@ export default function Admin() {
 
       {/* Asistente de Onboarding Wizard para Cuentas Nuevas */}
       {settings.name === "Nombre Temporal" && (
-        <div className="login-overlay" style={{ zIndex: 1000, background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)' }}>
-          <div className="login-card" style={{ maxWidth: '560px', width: '92%', padding: '32px', textAlign: 'left', maxHeight: '92vh', overflowY: 'auto' }}>
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0,
+          width: '100%', height: '100%',
+          zIndex: 9999,
+          background: 'radial-gradient(circle at top right, #1e1e38, #0b0f19 80%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          overflowY: 'auto'
+        }}>
+          <div className="login-card" style={{ maxWidth: '560px', width: '100%', padding: '32px', textAlign: 'left', maxHeight: '92vh', overflowY: 'auto' }}>
 
             {/* Header del Onboarding */}
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
