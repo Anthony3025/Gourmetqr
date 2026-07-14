@@ -84,6 +84,15 @@ export const Cocina: React.FC = () => {
   });
   const [deliverySelectorOrderId, setDeliverySelectorOrderId] = useState<string | null>(null);
 
+  // Helper para forzar HTTPS en URLs de imágenes (evita Mixed Content en Vercel)
+  const ensureHttps = (url: string | null): string => {
+    if (!url) return '';
+    if (url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    return url;
+  };
+
   // Guardar historial de entregados cuando cambie
   useEffect(() => {
     localStorage.setItem(`gourmetqr_recent_deliveries_${restaurantSlug}`, JSON.stringify(recentDeliveries));
@@ -189,9 +198,11 @@ export const Cocina: React.FC = () => {
     }
   };
 
-  // Cargar órdenes iniciales
+  // Cargar órdenes iniciales y entregas recientes
   useEffect(() => {
     const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    
+    // Cargar órdenes activas
     fetch(`${apiBase}/api/${restaurantSlug}/orders`)
       .then(res => res.json())
       .then((data: Order[]) => {
@@ -199,6 +210,16 @@ export const Cocina: React.FC = () => {
       })
       .catch(err => {
         console.error('Error al cargar órdenes:', err);
+      });
+
+    // Cargar entregas recientes
+    fetch(`${apiBase}/api/${restaurantSlug}/orders/recent`)
+      .then(res => res.json())
+      .then((data: Order[]) => {
+        setRecentDeliveries(data);
+      })
+      .catch(err => {
+        console.error('Error al cargar entregas recientes:', err);
       });
   }, []);
 
@@ -223,8 +244,13 @@ export const Cocina: React.FC = () => {
     // Orden actualizada por otro proceso
     const handleOrderUpdated = (updatedOrder: Order) => {
       if (updatedOrder.status === 'delivered') {
-        // Remover de la lista
+        // Remover de la lista activa
         setOrders(prev => prev.filter(o => o.id !== updatedOrder.id));
+        // Agregar al historial de entregas recientes si no está
+        setRecentDeliveries(prev => {
+          if (prev.some(o => o.id === updatedOrder.id)) return prev;
+          return [updatedOrder, ...prev].slice(0, 5);
+        });
       } else {
         // Actualizar estado en la lista
         setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
@@ -383,7 +409,7 @@ export const Cocina: React.FC = () => {
         <div className="cocina-header-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {logoUrl && (
             <img 
-              src={logoUrl} 
+              src={ensureHttps(logoUrl)} 
               alt="Logo" 
               style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
             />

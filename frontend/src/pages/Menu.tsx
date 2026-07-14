@@ -90,6 +90,15 @@ export const Menu: React.FC = () => {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [serviceRequestStatus, setServiceRequestStatus] = useState<'idle' | 'sent'>('idle');
 
+  // Helper para forzar HTTPS en URLs de imágenes (evita Mixed Content en Vercel)
+  const ensureHttps = (url: string | null): string => {
+    if (!url) return '';
+    if (url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    return url;
+  };
+
   // Persistir carrito en localStorage cada vez que cambia
   useEffect(() => {
     localStorage.setItem(`gourmetqr_cart_${restaurantSlug}`, JSON.stringify(cart));
@@ -664,7 +673,7 @@ export const Menu: React.FC = () => {
           <div className="brand-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {logoUrl && (
               <img 
-                src={logoUrl} 
+                src={ensureHttps(logoUrl)} 
                 alt="Logo" 
                 style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
               />
@@ -737,7 +746,7 @@ export const Menu: React.FC = () => {
 
                 {product.imageUrl && (
                   <div className="product-img-wrapper">
-                    <img src={product.imageUrl} alt={product.name} className="product-img" />
+                    <img src={ensureHttps(product.imageUrl)} alt={product.name} className="product-img" />
                     {totalQty > 0 && (
                       <div style={{
                         position: 'absolute',

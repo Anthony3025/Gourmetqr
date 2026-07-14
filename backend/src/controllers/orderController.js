@@ -321,11 +321,36 @@ const getOrderById = async (req, res) => {
   }
 };
 
+const getRecentDeliveries = async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      where: {
+        restaurantId: req.restaurant.id,
+        status: 'delivered'
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error('Error al obtener entregas recientes:', error);
+    res.status(500).json({ error: 'Error al obtener entregas recientes.' });
+  }
+};
+
 module.exports = {
   getActiveOrders,
   createOrder,
   updateOrderStatus,
   getStats,
   downloadPdf,
-  getOrderById
+  getOrderById,
+  getRecentDeliveries
 };
