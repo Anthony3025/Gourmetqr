@@ -10,6 +10,11 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1];
 
+  // Limpiar valores inválidos enviados por el frontend (ej. 'undefined', 'null')
+  if (token === 'undefined' || token === 'null' || token === '') {
+    token = null;
+  }
+
   // Si no viene en el header, intentar leerlo de las cookies
   if (!token && req.cookies) {
     token = req.cookies.admin_token || req.cookies.superadmin_token;
