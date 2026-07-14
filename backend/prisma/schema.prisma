@@ -39,7 +39,7 @@ model User {
 model Category {
   id           String      @id @default(uuid())
   restaurantId String
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   name         String
   displayOrder Int         @default(0)
   isActive     Boolean     @default(true)
@@ -49,9 +49,9 @@ model Category {
 model Product {
   id           String         @id @default(uuid())
   restaurantId String
-  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   categoryId   String
-  category     Category       @relation(fields: [categoryId], references: [id])
+  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name         String
   description  String
   price        Decimal        @db.Decimal(10, 2)
@@ -82,7 +82,7 @@ model ProductExtra {
 model Order {
   id           String      @id @default(uuid())
   restaurantId String
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   tableNumber  String
   status       String      @default("pending") // pending, preparing, ready, delivered
   totalAmount  Decimal     @db.Decimal(10, 2)
@@ -94,7 +94,7 @@ model Order {
 model OrderItem {
   id           String   @id @default(uuid())
   orderId      String
-  order        Order    @relation(fields: [orderId], references: [id])
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId    String
   product      Product  @relation(fields: [productId], references: [id])
   quantity     Int
