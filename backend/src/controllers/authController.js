@@ -68,8 +68,8 @@ const login = async (req, res) => {
     const cookieName = isSuper ? 'superadmin_token' : 'admin_token';
     res.cookie(cookieName, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: true, // Forzado siempre a true para asegurar transmisión HTTPS en Vercel <-> Render
+      sameSite: 'none', // Forzado siempre a 'none' para permitir cookies de origen cruzado
       maxAge: 8 * 60 * 60 * 1000 // 8 horas
     });
 
@@ -130,13 +130,13 @@ const getMe = async (req, res) => {
 const logout = (req, res) => {
   res.clearCookie('admin_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    secure: true,
+    sameSite: 'none'
   });
   res.clearCookie('superadmin_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    secure: true,
+    sameSite: 'none'
   });
   return res.json({ success: true });
 };
