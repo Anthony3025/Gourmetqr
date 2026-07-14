@@ -89,6 +89,7 @@ export const Menu: React.FC = () => {
   // Estados de llamado de servicio
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [serviceRequestStatus, setServiceRequestStatus] = useState<'idle' | 'sent'>('idle');
+  const [accentColor, setAccentColor] = useState('#ff5a1f');
 
   // Helper para forzar HTTPS en URLs de imágenes (evita Mixed Content en Vercel)
   const ensureHttps = (url: string | null): string => {
@@ -97,6 +98,18 @@ export const Menu: React.FC = () => {
       return url.replace('http://', 'https://');
     }
     return url;
+  };
+
+  // Helper para calcular contraste inteligente (Luma YIQ)
+  const getContrastColor = (hexColor: string): string => {
+    if (!hexColor) return '#ffffff';
+    const hex = hexColor.replace('#', '');
+    if (hex.length !== 6) return '#ffffff';
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? '#0b0f19' : '#ffffff';
   };
 
   // Persistir carrito en localStorage cada vez que cambia
@@ -146,6 +159,7 @@ export const Menu: React.FC = () => {
         if (data.logoUrl) setLogoUrl(data.logoUrl);
         if (data.currency) setCurrencySymbol(data.currency);
         if (data.accentColor) {
+          setAccentColor(data.accentColor);
           document.documentElement.style.setProperty('--accent', data.accentColor);
         }
         if (data.isActive !== undefined) {
@@ -251,6 +265,7 @@ export const Menu: React.FC = () => {
         if (data.settings.logoUrl) setLogoUrl(data.settings.logoUrl);
         if (data.settings.currency) setCurrencySymbol(data.settings.currency);
         if (data.settings.accentColor) {
+          setAccentColor(data.settings.accentColor);
           document.documentElement.style.setProperty('--accent', data.settings.accentColor);
         }
       }
@@ -608,7 +623,7 @@ export const Menu: React.FC = () => {
             >
               {readyToCollect ? (
                 <>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: '2px solid #3b82f6', animation: 'pulseBorder 2s infinite' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: `2px solid ${accentColor}`, animation: 'pulseBorder 2s infinite' }}>
                     📢
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -620,7 +635,7 @@ export const Menu: React.FC = () => {
                   <button
                     type="button"
                     className="action-btn-large"
-                    style={{ background: '#3b82f6', width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    style={{ background: 'var(--accent)', color: getContrastColor(accentColor), width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', border: 'none', borderRadius: 'var(--radius-md)' }}
                     onClick={() => {
                       setReadyToCollect(false);
                       setOrderDispatched(false);
@@ -633,7 +648,7 @@ export const Menu: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: '2px solid #10b981', animation: 'pulseBorder 2s infinite' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: `2px solid ${accentColor}`, animation: 'pulseBorder 2s infinite' }}>
                     🍽️
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -644,7 +659,7 @@ export const Menu: React.FC = () => {
                   </div>
                   <button 
                     className="action-btn-large pulse-button" 
-                    style={{ width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    style={{ background: 'var(--accent)', color: getContrastColor(accentColor), width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', border: 'none', borderRadius: 'var(--radius-md)' }}
                     onClick={() => {
                       setOrderDispatched(false);
                       setCurrentOrder(null);
@@ -691,6 +706,7 @@ export const Menu: React.FC = () => {
             <button
               key={category.id}
               className={`category-tab ${activeCategory === category.id ? 'active' : ''}`}
+              style={activeCategory === category.id ? { background: 'var(--accent)', color: getContrastColor(accentColor), borderColor: 'var(--accent)' } : {}}
               onClick={() => setActiveCategory(category.id)}
             >
               {category.name}
@@ -705,6 +721,7 @@ export const Menu: React.FC = () => {
           <button
             key={filter}
             className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
+            style={activeFilter === filter ? { background: 'var(--accent)', color: getContrastColor(accentColor), borderColor: 'var(--accent)' } : {}}
             onClick={() => setActiveFilter(filter)}
           >
             {filter === 'Picante' && '🌶️ '}
@@ -792,6 +809,7 @@ export const Menu: React.FC = () => {
                     {product.isActive ? (
                       <button 
                         className="add-btn"
+                        style={{ background: 'var(--accent)', color: getContrastColor(accentColor) }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleProductClick(product);
@@ -912,7 +930,11 @@ export const Menu: React.FC = () => {
 
             {/* Acción de agregar */}
             <div className="add-to-cart-action">
-              <button className="action-btn-large" onClick={handleAddToCart}>
+              <button 
+                className="action-btn-large" 
+                style={{ background: 'var(--accent)', color: getContrastColor(accentColor), boxShadow: `0 6px 20px ${accentColor}40` }}
+                onClick={handleAddToCart}
+              >
                 <span>Agregar a mi Orden</span>
                 <span>
                   {currencySymbol} {(
@@ -1037,7 +1059,7 @@ export const Menu: React.FC = () => {
 
             <button 
               className="action-btn-large pulse-button" 
-              style={{ marginTop: '16px' }}
+              style={{ marginTop: '16px', background: 'var(--accent)', color: getContrastColor(accentColor), boxShadow: `0 6px 20px ${accentColor}40` }}
               onClick={() => {
                 handleSendOrder(calculateCartTotal());
               }}

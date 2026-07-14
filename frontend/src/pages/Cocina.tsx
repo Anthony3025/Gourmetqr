@@ -742,63 +742,74 @@ export const Cocina: React.FC = () => {
 
       </main>
 
-      {/* FRANJA INFERIOR: Historial de Entregas Recientes (Estilo Tabla/Log - Opción 2) */}
+      {/* FRANJA INFERIOR: Historial de Entregas Recientes (Estilo Slate Alternante - Opción 4) */}
       {recentDeliveries.length > 0 && (
         <div style={{
-          borderTop: '1px solid var(--border-color)',
-          background: '#0c0f16',
-          padding: '12px 24px',
+          padding: '16px 24px',
+          display: 'flex',
+          justifyContent: 'flex-start',
           flexShrink: 0,
-          maxHeight: '180px',
-          overflowY: 'auto'
+          background: '#080a0d'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              📋 Historial de Entregas Recientes (Últimas 5)
-            </span>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.04)', textTransform: 'uppercase', fontSize: '10px' }}>
-                <th style={{ padding: '6px 12px', fontWeight: '700', width: '100px' }}>Mesa</th>
-                <th style={{ padding: '6px 12px', fontWeight: '700' }}>Detalle de la Orden</th>
-                <th style={{ padding: '6px 12px', fontWeight: '700', width: '120px', textAlign: 'right' }}>Total</th>
-                <th style={{ padding: '6px 12px', fontWeight: '700', width: '120px', textAlign: 'center' }}>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentDeliveries.map((order) => (
-                <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#e2e8f0' }}>
-                  <td style={{ padding: '8px 12px', fontWeight: 'bold', color: '#fff' }}>MESA {order.tableNumber}</td>
-                  <td style={{ padding: '8px 12px', color: 'var(--text-secondary)' }}>
-                    {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
-                  </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
-                    ${Number(order.totalAmount).toFixed(2)}
-                  </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        color: '#ef4444',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        borderRadius: '4px',
-                        padding: '4px 10px',
-                        fontSize: '10px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        transition: 'background 0.2s'
-                      }}
-                      onClick={() => handleUndoDelivery(order.id)}
-                    >
-                      ↩ Deshacer
-                    </button>
-                  </td>
+          <div style={{
+            width: '100%',
+            maxWidth: '680px',
+            background: '#121620',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+              Historial de Entregas Recientes (Últimas 5)
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.05)', textTransform: 'uppercase', fontSize: '10px' }}>
+                  <th style={{ padding: '6px 8px', fontWeight: '700', width: '80px' }}>Mesa</th>
+                  <th style={{ padding: '6px 8px', fontWeight: '700' }}>Pedido</th>
+                  <th style={{ padding: '6px 8px', fontWeight: '700', width: '80px', textAlign: 'right' }}>Total</th>
+                  <th style={{ padding: '6px 8px', fontWeight: '700', width: '90px', textAlign: 'center' }}>Acción</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentDeliveries.map((order, index) => (
+                  <tr key={order.id} style={{ 
+                    background: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                    color: '#cbd5e1'
+                  }}>
+                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#fff' }}>Mesa {order.tableNumber}</td>
+                    <td style={{ padding: '8px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }} title={order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}>
+                      {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
+                      ${Number(order.totalAmount).toFixed(2)}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          color: '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.15)',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          fontWeight: '700',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => handleUndoDelivery(order.id)}
+                      >
+                        Deshacer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
