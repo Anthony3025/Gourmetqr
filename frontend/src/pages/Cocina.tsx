@@ -740,37 +740,61 @@ export const Cocina: React.FC = () => {
           </div>
         </section>
 
-        {/* HISTORIAL LATERAL DE ENTREGADOS RECIENTES */}
-        {recentDeliveries.length > 0 && (
-          <section className="kanban-column" style={{ maxWidth: '280px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
-            <header className="column-header">
-              <h3 className="column-title" style={{ color: 'var(--text-secondary)' }}>Entregas Recientes</h3>
-            </header>
-            <div className="column-cards-container" style={{ gap: '10px' }}>
-              {recentDeliveries.map(order => (
-                <div key={order.id} className="order-card" style={{ opacity: 0.7, padding: '12px', borderColor: 'var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                    <strong style={{ color: '#fff' }}>MESA {order.tableNumber}</strong>
-                    <span style={{ color: 'var(--text-muted)' }}>${Number(order.totalAmount).toFixed(2)}</span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                    {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
-                  </div>
-                  <button
-                    type="button"
-                    className="kanban-action-btn"
-                    style={{ width: '100%', padding: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
-                    onClick={() => handleUndoDelivery(order.id)}
-                  >
-                    ↩ Deshacer Entrega
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
       </main>
+
+      {/* FRANJA INFERIOR: Historial de Entregas Recientes */}
+      {recentDeliveries.length > 0 && (
+        <div style={{
+          borderTop: '1px solid var(--border-color)',
+          background: 'rgba(16, 20, 28, 0.95)',
+          padding: '12px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          flexShrink: 0
+        }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+            ✅ Recientes
+          </span>
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            overflowX: 'auto',
+            flex: 1,
+            paddingBottom: '4px'
+          }}>
+            {recentDeliveries.map(order => (
+              <div key={order.id} style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: '180px',
+                flexShrink: 0
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '13px', color: '#fff' }}>MESA {order.tableNumber}</strong>
+                  <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: '700' }}>${Number(order.totalAmount).toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '156px' }}>
+                  {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
+                </div>
+                <button
+                  type="button"
+                  style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', marginTop: '2px', fontWeight: '600' }}
+                  onClick={() => handleUndoDelivery(order.id)}
+                >
+                  ↩ Deshacer
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
