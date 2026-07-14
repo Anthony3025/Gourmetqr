@@ -35,3 +35,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
+
+# Sensitive reports
+REPORTE_AUDITORIA.md
+INFORME_AUDITORÍA.md
+*AUDITORIA*.md
+*AUDITORÍA*.md
