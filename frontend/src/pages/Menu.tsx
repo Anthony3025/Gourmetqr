@@ -537,17 +537,17 @@ export const Menu: React.FC = () => {
             <div className="step-node">
               <span>{orderStatus === 'ready' || orderStatus === 'delivered' ? '🍽️' : '🛎️'}</span>
             </div>
-            <div className="step-info">
+            <div className="step-info" style={{ textAlign: 'center' }}>
               <h4 className="step-title">Listo para Servir</h4>
               <p className="step-desc">
-                {orderStatus === 'ready' || orderStatus === 'delivered' ? '¡Tu comida va en camino con el mesero!' : 'Esperando que termine la preparación.'}
+                {orderStatus === 'ready' || orderStatus === 'delivered' ? 'Preparación completada. En breve saldrá hacia tu mesa.' : 'Esperando que termine la preparación.'}
               </p>
             </div>
           </div>
         </div>
 
         <div className="waiting-order-summary" style={{ marginBottom: '20px' }}>
-          <div className="summary-title">Mesa {mesa} - Resumen de Pedido</div>
+          <div className="summary-title" style={{ textAlign: 'center' }}>Mesa {mesa} - Resumen de Pedido</div>
           {currentOrder?.items && currentOrder.items.map((item: any, idx: number) => (
             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
               <span>{item.quantity}x {item.product?.name || 'Platillo'}</span>
@@ -593,7 +593,8 @@ export const Menu: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '24px',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               {readyToCollect ? (
@@ -601,16 +602,16 @@ export const Menu: React.FC = () => {
                   <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: '2px solid #3b82f6', animation: 'pulseBorder 2s infinite' }}>
                     📢
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0' }}>¡Retira en Barra!</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0', textAlign: 'center' }}>¡Retira en Barra!</h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
                       Tu pedido está listo y esperándote en la barra. Por favor acércate a recogerlo.
                     </p>
                   </div>
                   <button
                     type="button"
                     className="action-btn-large"
-                    style={{ background: '#3b82f6', width: '100%', fontWeight: '700', padding: '16px' }}
+                    style={{ background: '#3b82f6', width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                     onClick={() => {
                       setReadyToCollect(false);
                       setOrderDispatched(false);
@@ -626,15 +627,15 @@ export const Menu: React.FC = () => {
                   <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: '2px solid #10b981', animation: 'pulseBorder 2s infinite' }}>
                     🍽️
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0' }}>¡Pedido en Camino!</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0', textAlign: 'center' }}>¡Pedido en Camino!</h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
                       Tu comida ha sido despachada por la cocina y un mesero la está llevando a tu mesa en este momento.
                     </p>
                   </div>
                   <button 
                     className="action-btn-large pulse-button" 
-                    style={{ width: '100%', fontWeight: '700', padding: '16px' }}
+                    style={{ width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                     onClick={() => {
                       setOrderDispatched(false);
                       setCurrentOrder(null);
