@@ -164,7 +164,6 @@ export default function Admin() {
       })
       .then(data => {
         if (data.success && (data.user.role === 'admin' || data.user.role === 'superadmin')) {
-          setToken(data.token || 'session_active');
           setIsAuthenticated(true);
         }
       })
@@ -190,12 +189,8 @@ export default function Admin() {
       .then((data: Category[]) => setMenu(data))
       .catch(err => console.error('Error al cargar menú en admin:', err));
 
-    // Cargar estadísticas (protegido por JWT)
-    const activeToken = token;
-    if (!activeToken) return;
-    fetch(`${apiBase}/api/${restaurantSlug}/stats`, {
-      headers: { 'Authorization': `Bearer ${activeToken}` }
-    })
+    // Cargar estadísticas (protegido por cookie)
+    fetch(`${apiBase}/api/${restaurantSlug}/stats`)
       .then(res => {
         if (res.status === 401 || res.status === 403) {
           handleLogout();
@@ -212,11 +207,7 @@ export default function Admin() {
     if (!socket || !isAuthenticated) return;
 
     const handleRefreshStats = () => {
-      const activeToken = token;
-      if (!activeToken) return;
-      fetch(`${apiBase}/api/${restaurantSlug}/stats`, {
-        headers: { 'Authorization': `Bearer ${activeToken}` }
-      })
+      fetch(`${apiBase}/api/${restaurantSlug}/stats`)
         .then(res => {
           if (res.status === 401 || res.status === 403) {
             handleLogout();
@@ -303,8 +294,7 @@ export default function Admin() {
     fetch(`${apiBase}/api/${restaurantSlug}/settings`, {
       method: 'PATCH',
       headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     })
@@ -329,8 +319,7 @@ export default function Admin() {
     fetch(`${apiBase}/api/${restaurantSlug}/products/${productId}/availability`, {
       method: 'PATCH',
       headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ isActive: nextStatus })
     })
@@ -353,8 +342,7 @@ export default function Admin() {
     fetch(`${apiBase}/api/${restaurantSlug}/products/${productId}/price`, {
       method: 'PATCH',
       headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ price: parseFloat(newPrice) })
     })
@@ -380,8 +368,7 @@ export default function Admin() {
     fetch(`${apiBase}/api/${restaurantSlug}/categories`, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ name: newCategoryName })
     })
@@ -404,10 +391,7 @@ export default function Admin() {
     if (!confirm('¿Estás seguro de que quieres eliminar esta categoría y todos sus platos asociados?')) return;
 
     fetch(`${apiBase}/api/${restaurantSlug}/categories/${categoryId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      method: 'DELETE'
     })
       .then(res => {
         if (!res.ok) throw new Error('Error al eliminar categoría');
@@ -444,8 +428,7 @@ export default function Admin() {
     fetch(`${apiBase}/api/${restaurantSlug}/products`, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         name: newProductName,
@@ -500,10 +483,7 @@ export default function Admin() {
     if (!confirm('¿Estás seguro de que deseas eliminar este plato?')) return;
 
     fetch(`${apiBase}/api/${restaurantSlug}/products/${productId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      method: 'DELETE'
     })
       .then(res => {
         if (!res.ok) throw new Error('Error al eliminar producto');

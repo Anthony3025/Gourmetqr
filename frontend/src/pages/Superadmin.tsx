@@ -22,7 +22,6 @@ export default function Superadmin() {
   const apiBase = API_BASE;
 
   // Autenticación
-  const [token, setToken] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [emailInput, setEmailInput] = useState('');
@@ -64,9 +63,8 @@ export default function Superadmin() {
       })
       .then(data => {
         if (data.success && data.user.role === 'superadmin') {
-          setToken(data.token || 'session_active');
           setIsAuthenticated(true);
-          fetchRestaurants(data.token || 'session_active');
+          fetchRestaurants();
         }
       })
       .catch(() => {
@@ -77,14 +75,10 @@ export default function Superadmin() {
       });
   }, []);
 
-  const fetchRestaurants = (authToken: string) => {
+  const fetchRestaurants = () => {
     setLoadingData(true);
     setErrorMsg('');
-    fetch(`${apiBase}/api/superadmin/restaurants`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    })
+    fetch(`${apiBase}/api/superadmin/restaurants`)
       .then(res => {
         if (!res.ok) throw new Error('No autorizado para ver este panel.');
         return res.json();
@@ -125,7 +119,6 @@ export default function Superadmin() {
       })
       .then(data => {
         if (data.user && data.user.role === 'superadmin') {
-          setToken(data.token);
           setIsAuthenticated(true);
         } else {
           throw new Error('Acceso denegado. Se requiere cuenta de Súper-Administrador.');
@@ -142,7 +135,6 @@ export default function Superadmin() {
   const handleLogout = () => {
     fetch(`${apiBase}/api/auth/logout`, { method: 'POST' })
       .finally(() => {
-        setToken('');
         setIsAuthenticated(false);
         setRestaurants([]);
       });
@@ -160,8 +152,7 @@ export default function Superadmin() {
     fetch(`${apiBase}/api/superadmin/restaurants`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     })
@@ -181,7 +172,7 @@ export default function Superadmin() {
         setShowCreateModal(false);
         setShowSuccessModal(true);
         setSubmitLoading(false);
-        fetchRestaurants(token);
+        fetchRestaurants();
       })
       .catch(err => {
         console.error(err);
@@ -196,17 +187,14 @@ export default function Superadmin() {
     }
 
     fetch(`${apiBase}/api/superadmin/restaurants/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      method: 'DELETE'
     })
       .then(res => {
         if (!res.ok) throw new Error('No se pudo eliminar el restaurante.');
         return res.json();
       })
       .then(() => {
-        fetchRestaurants(token);
+        fetchRestaurants();
       })
       .catch(err => {
         console.error(err);
@@ -223,8 +211,7 @@ export default function Superadmin() {
     fetch(`${apiBase}/api/superadmin/restaurants/${id}`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ isActive: newStatus })
     })
@@ -269,8 +256,7 @@ export default function Superadmin() {
     fetch(`${apiBase}/api/superadmin/restaurants/${selectedRest.id}`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     })
@@ -284,7 +270,7 @@ export default function Superadmin() {
         setShowEditModal(false);
         setSelectedRest(null);
         setSubmitLoading(false);
-        fetchRestaurants(token);
+        fetchRestaurants();
       })
       .catch(err => {
         console.error(err);
