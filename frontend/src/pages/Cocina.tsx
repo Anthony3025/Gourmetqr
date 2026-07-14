@@ -516,7 +516,7 @@ export const Cocina: React.FC = () => {
                       <div className="item-main-row">
                         <span>
                           <span className="item-qty">{item.quantity}x</span> 
-                          {item.product.name}
+                          {item.product?.name || 'Platillo'}
                         </span>
                       </div>
                       
@@ -579,7 +579,7 @@ export const Cocina: React.FC = () => {
                       <div className="item-main-row">
                         <span>
                           <span className="item-qty">{item.quantity}x</span> 
-                          {item.product.name}
+                          {item.product?.name || 'Platillo'}
                         </span>
                       </div>
                       
@@ -699,7 +699,7 @@ export const Cocina: React.FC = () => {
                       <div className="item-main-row">
                         <span>
                           <span className="item-qty">{item.quantity}x</span> 
-                          {item.product.name}
+                          {item.product?.name || 'Platillo'}
                         </span>
                       </div>
                       
@@ -742,56 +742,63 @@ export const Cocina: React.FC = () => {
 
       </main>
 
-      {/* FRANJA INFERIOR: Historial de Entregas Recientes */}
+      {/* FRANJA INFERIOR: Historial de Entregas Recientes (Estilo Tabla/Log - Opción 2) */}
       {recentDeliveries.length > 0 && (
         <div style={{
           borderTop: '1px solid var(--border-color)',
-          background: 'rgba(16, 20, 28, 0.95)',
+          background: '#0c0f16',
           padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          flexShrink: 0
+          flexShrink: 0,
+          maxHeight: '180px',
+          overflowY: 'auto'
         }}>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-            ✅ Recientes
-          </span>
-          <div style={{
-            display: 'flex',
-            gap: '10px',
-            overflowX: 'auto',
-            flex: 1,
-            paddingBottom: '4px'
-          }}>
-            {recentDeliveries.map(order => (
-              <div key={order.id} style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '8px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                minWidth: '180px',
-                flexShrink: 0
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '13px', color: '#fff' }}>MESA {order.tableNumber}</strong>
-                  <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: '700' }}>${Number(order.totalAmount).toFixed(2)}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '156px' }}>
-                  {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
-                </div>
-                <button
-                  type="button"
-                  style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', marginTop: '2px', fontWeight: '600' }}
-                  onClick={() => handleUndoDelivery(order.id)}
-                >
-                  ↩ Deshacer
-                </button>
-              </div>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              📋 Historial de Entregas Recientes (Últimas 5)
+            </span>
           </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.04)', textTransform: 'uppercase', fontSize: '10px' }}>
+                <th style={{ padding: '6px 12px', fontWeight: '700', width: '100px' }}>Mesa</th>
+                <th style={{ padding: '6px 12px', fontWeight: '700' }}>Detalle de la Orden</th>
+                <th style={{ padding: '6px 12px', fontWeight: '700', width: '120px', textAlign: 'right' }}>Total</th>
+                <th style={{ padding: '6px 12px', fontWeight: '700', width: '120px', textAlign: 'center' }}>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentDeliveries.map((order) => (
+                <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#e2e8f0' }}>
+                  <td style={{ padding: '8px 12px', fontWeight: 'bold', color: '#fff' }}>MESA {order.tableNumber}</td>
+                  <td style={{ padding: '8px 12px', color: 'var(--text-secondary)' }}>
+                    {order.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ')}
+                  </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
+                    ${Number(order.totalAmount).toFixed(2)}
+                  </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        borderRadius: '4px',
+                        padding: '4px 10px',
+                        fontSize: '10px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        transition: 'background 0.2s'
+                      }}
+                      onClick={() => handleUndoDelivery(order.id)}
+                    >
+                      ↩ Deshacer
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
