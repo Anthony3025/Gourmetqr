@@ -82,7 +82,8 @@ export const Menu: React.FC = () => {
 
   // Estados de orden procesada
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
-  const [orderStatus, setOrderStatus] = useState<string>(''); // pending, preparing, ready
+  const [orderStatus, setOrderStatus] = useState<string>(''); // pending, preparing, ready, delivered
+  const [readyToCollect, setReadyToCollect] = useState(false);
 
   // Estados de llamado de servicio
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -158,6 +159,33 @@ export const Menu: React.FC = () => {
       });
   }, []);
 
+  // Audio de notificación sutil del lado del cliente
+  const playClientAlert = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioCtx = new AudioContextClass();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5 note
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.6);
+      
+      // Vibración de apoyo
+      if (navigator.vibrate) {
+        navigator.vibrate([150, 100, 150]);
+      }
+    } catch (e) {
+      console.warn('Bloqueo de reproducción automática de audio cliente.', e);
+    }
+  };
+
   // Escuchar actualizaciones de la orden actual vía WebSockets
   useEffect(() => {
     if (!socket || !currentOrder) return;
@@ -166,13 +194,27 @@ export const Menu: React.FC = () => {
       if (updatedOrder.id === currentOrder.id) {
         setCurrentOrder(updatedOrder);
         setOrderStatus(updatedOrder.status);
+        
+        // Si el estado cambia a listo, reproducir aviso acústico
+        if (updatedOrder.status === 'ready' || updatedOrder.status === 'delivered') {
+          playClientAlert();
+        }
+      }
+    };
+
+    const handleOrderReadyToCollect = (data: { orderId: string }) => {
+      if (data.orderId === currentOrder.id) {
+        setReadyToCollect(true);
+        playClientAlert();
       }
     };
 
     socket.on('order_updated', handleOrderUpdated);
+    socket.on('order_ready_to_collect', handleOrderReadyToCollect);
 
     return () => {
       socket.off('order_updated', handleOrderUpdated);
+      socket.off('order_ready_to_collect', handleOrderReadyToCollect);
     };
   }, [socket, currentOrder]);
 
@@ -515,17 +557,45 @@ export const Menu: React.FC = () => {
           </div>
         </div>
 
+        {/* BANNER DE AUTO-SERVICIO O AVISO DE MESERO */}
         {orderStatus === 'ready' && (
-          <button 
-            className="action-btn-large pulse-button" 
-            style={{ marginTop: '24px' }}
-            onClick={() => {
-              setCurrentOrder(null);
-              setOrderStatus('');
-            }}
-          >
-            Pedir Algo Más
-          </button>
+          <div style={{ marginTop: '24px', width: '100%' }}>
+            {readyToCollect ? (
+              <div className="animate-fade-in" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>📢</span>
+                <strong style={{ color: '#fff', fontSize: '15px', display: 'block' }}>¡Tu pedido está listo en la Barra!</strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Por favor acércate a retirarlo.</span>
+                <button
+                  type="button"
+                  className="action-btn-large"
+                  style={{ background: '#3b82f6', marginTop: '16px' }}
+                  onClick={() => {
+                    setReadyToCollect(false);
+                    setCurrentOrder(null);
+                    setOrderStatus('');
+                  }}
+                >
+                  Confirmar que ya lo retiré ✓
+                </button>
+              </div>
+            ) : (
+              <div className="animate-fade-in" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>🍽️</span>
+                <strong style={{ color: '#fff', fontSize: '15px', display: 'block' }}>¡Tu pedido va en camino!</strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Un mesero lo está llevando a tu mesa.</span>
+                <button 
+                  className="action-btn-large pulse-button" 
+                  style={{ marginTop: '16px' }}
+                  onClick={() => {
+                    setCurrentOrder(null);
+                    setOrderStatus('');
+                  }}
+                >
+                  Pedir Algo Más
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     );

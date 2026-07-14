@@ -797,7 +797,7 @@ export default function Admin() {
                           </label>
                           {onboardingLogoBase64 && (
                             <button type="button" onClick={() => setOnboardingLogoBase64('')} className="btn-admin-secondary"
-                              style={{ color: 'var(--danger)', fontSize: '12px', padding: '4px 8px' }}>Remover</button>
+                              style={{ color: 'var(--danger)', fontSize: '13px', padding: '6px 12px' }} title="Remover Logo">🗑️</button>
                           )}
                         </div>
                       </div>
@@ -1741,9 +1741,10 @@ export default function Admin() {
                           setSettings({ ...settings, logoUrl: null });
                         }}
                         className="btn-admin-secondary"
-                        style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', padding: '8px 12px' }}
+                        style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', padding: '8px 12px', fontSize: '15px' }}
+                        title="Eliminar Logo"
                       >
-                        Remover
+                        🗑️
                       </button>
                     )}
                   </div>

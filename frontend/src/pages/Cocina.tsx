@@ -74,6 +74,7 @@ export const Cocina: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [recentDeliveries, setRecentDeliveries] = useState<Order[]>([]);
 
   // Estados de Autenticación por PIN y Marca
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -277,6 +278,11 @@ export const Cocina: React.FC = () => {
       .then(res => res.json())
       .then((updatedOrder: Order) => {
         if (nextStatus === 'delivered') {
+          // Guardar la orden antes de removerla para el historial y poder deshacer
+          const orderToDeliver = orders.find(o => o.id === orderId);
+          if (orderToDeliver) {
+            setRecentDeliveries(prev => [orderToDeliver, ...prev].slice(0, 5));
+          }
           setOrders(prev => prev.filter(o => o.id !== orderId));
         } else {
           setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
@@ -284,6 +290,26 @@ export const Cocina: React.FC = () => {
       })
       .catch(err => {
         console.error('Error al avanzar el estado de la orden:', err);
+      });
+  };
+
+  // Deshacer entrega y regresar pedido a la cocina
+  const handleUndoDelivery = (orderId: string) => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/${restaurantSlug}/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'ready' })
+    })
+      .then(res => res.json())
+      .then((restoredOrder: Order) => {
+        setOrders(prev => [...prev, restoredOrder]);
+        setRecentDeliveries(prev => prev.filter(o => o.id !== orderId));
+      })
+      .catch(err => {
+        console.error('Error al deshacer la entrega de la orden:', err);
       });
   };
 
@@ -596,21 +622,70 @@ export const Cocina: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="order-card-footer">
-                  <div className="order-card-total">
-                    Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                <div className="order-card-footer" style={{ flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <div className="order-card-total">
+                      Total: <span>${Number(order.totalAmount).toFixed(2)}</span>
+                    </div>
                   </div>
-                  <button 
-                    className="kanban-action-btn deliver-prep"
-                    onClick={() => handleAdvanceStatus(order.id, order.status)}
-                  >
-                    Entregar
-                  </button>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
+                    <button 
+                      className="kanban-action-btn"
+                      style={{ background: 'var(--success)', color: '#fff', fontSize: '11px', padding: '10px 4px', whiteSpace: 'normal', height: 'auto', lineHeight: '1.2' }}
+                      onClick={() => handleAdvanceStatus(order.id, order.status)}
+                    >
+                      ✓ Entregado a Mesero
+                    </button>
+                    <button 
+                      className="kanban-action-btn"
+                      style={{ background: '#3b82f6', color: '#fff', fontSize: '11px', padding: '10px 4px', whiteSpace: 'normal', height: 'auto', lineHeight: '1.2' }}
+                      onClick={() => {
+                        // Avisar al cliente por websocket para retirar en barra
+                        if (socket) {
+                          socket.emit('order_ready_to_collect', { orderId: order.id, restaurantSlug });
+                        }
+                        // Avanzamos el estado a listo pero le dejamos al cliente el banner de aviso
+                        handleAdvanceStatus(order.id, order.status);
+                      }}
+                    >
+                      📢 Avisar para Retirar
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </section>
+
+        {/* HISTORIAL LATERAL DE ENTREGADOS RECIENTES */}
+        {recentDeliveries.length > 0 && (
+          <section className="kanban-column" style={{ maxWidth: '280px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
+            <header className="column-header">
+              <h3 className="column-title" style={{ color: 'var(--text-secondary)' }}>Entregas Recientes</h3>
+            </header>
+            <div className="column-cards-container" style={{ gap: '10px' }}>
+              {recentDeliveries.map(order => (
+                <div key={order.id} className="order-card" style={{ opacity: 0.7, padding: '12px', borderColor: 'var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
+                    <strong style={{ color: '#fff' }}>MESA {order.tableNumber}</strong>
+                    <span style={{ color: 'var(--text-muted)' }}>${Number(order.totalAmount).toFixed(2)}</span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                    {order.items.map(i => `${i.quantity}x ${i.product.name}`).join(', ')}
+                  </div>
+                  <button
+                    type="button"
+                    className="kanban-action-btn"
+                    style={{ width: '100%', padding: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+                    onClick={() => handleUndoDelivery(order.id)}
+                  >
+                    ↩ Deshacer Entrega
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
       </main>
     </div>
