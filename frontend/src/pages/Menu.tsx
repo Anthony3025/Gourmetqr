@@ -251,7 +251,15 @@ export const Menu: React.FC = () => {
     const handleOrderUpdated = (updatedOrder: Order) => {
       const activeOrder = currentOrderRef.current;
       if (activeOrder && updatedOrder.id === activeOrder.id) {
-        setCurrentOrder(updatedOrder);
+        // Hacemos merge de los datos previos con los nuevos para conservar detalles si vienen nulos
+        setCurrentOrder(prev => {
+          if (!prev) return updatedOrder;
+          return {
+            ...prev,
+            ...updatedOrder,
+            items: updatedOrder.items && updatedOrder.items.length > 0 ? updatedOrder.items : prev.items
+          };
+        });
         setOrderStatus(updatedOrder.status);
         
         if (updatedOrder.status === 'delivered') {
@@ -603,10 +611,10 @@ export const Menu: React.FC = () => {
 
         <div className="waiting-order-summary" style={{ marginBottom: '20px' }}>
           <div className="summary-title" style={{ textAlign: 'center' }}>Mesa {mesa} - Resumen de Pedido</div>
-          {currentOrder?.items && currentOrder.items.map((item: any, idx: number) => (
+          {Array.isArray(currentOrder?.items) && currentOrder.items.map((item: any, idx: number) => (
             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-              <span>{item.quantity}x {item.product?.name || 'Platillo'}</span>
-              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>${((Number(item.unitPrice) || 0) * item.quantity).toFixed(2)}</span>
+              <span>{item.quantity}x {item.product?.name || item.name || 'Platillo'}</span>
+              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>${((Number(item.unitPrice) || 0) * (item.quantity || 1)).toFixed(2)}</span>
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '10px', fontWeight: 700 }}>
