@@ -552,175 +552,175 @@ export const Menu: React.FC = () => {
     );
   }
 
-  // Si el cliente tiene una orden enviada y activa, muestra la pantalla de espera
-  if (currentOrder && (orderStatus === 'pending' || orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered')) {
-    return (
-      <div className="waiting-screen" onClick={playClientAlert /* Desbloquear AudioContext al tocar cualquier parte */}>
-        <h2 className="waiting-title" style={{ marginBottom: '8px' }}>Seguimiento de tu Orden</h2>
-        <p className="waiting-subtitle" style={{ marginBottom: '24px' }}>Mesa {mesa} • Sincronizado en tiempo real</p>
-
-        {/* Tracking Vertical Premium */}
-        <div className="order-tracking-vertical">
-          {/* Paso 1: Recibido */}
-          <div className={`tracking-step ${orderStatus === 'pending' ? 'active' : ''} ${(orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered') ? 'completed' : ''}`}>
-            <div className="step-node">
-              <span>{orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered' ? '✓' : '🛎️'}</span>
-            </div>
-            <div className="step-info">
-              <h4 className="step-title">Orden Recibida</h4>
-              <p className="step-desc">
-                {orderStatus === 'pending' ? 'Recibida en cocina. Preparando ingredientes...' : 'Orden recibida y asignada con éxito.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Conector 1 */}
-          <div className={`tracking-connector ${(orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered') ? 'filled' : ''}`}></div>
-
-          {/* Paso 2: Preparando */}
-          <div className={`tracking-step ${orderStatus === 'preparing' ? 'active' : ''} ${(orderStatus === 'ready' || orderStatus === 'delivered') ? 'completed' : ''}`}>
-            <div className="step-node">
-              <span>{orderStatus === 'ready' || orderStatus === 'delivered' ? '✓' : '🍳'}</span>
-            </div>
-            <div className="step-info">
-              <h4 className="step-title">En Preparación</h4>
-              <p className="step-desc">
-                {orderStatus === 'pending' && 'En fila para iniciar preparación.'}
-                {orderStatus === 'preparing' && 'El chef está cocinando tu orden al fuego.'}
-                {(orderStatus === 'ready' || orderStatus === 'delivered') && 'Cocción finalizada a la perfección.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Conector 2 */}
-          <div className={`tracking-connector ${(orderStatus === 'ready' || orderStatus === 'delivered') ? 'filled' : ''}`}></div>
-
-          {/* Paso 3: Listo */}
-          <div className={`tracking-step status-ready-active ${(orderStatus === 'ready' || orderStatus === 'delivered') ? 'active' : ''}`}>
-            <div className="step-node">
-              <span>{orderStatus === 'ready' || orderStatus === 'delivered' ? '🍽️' : '🛎️'}</span>
-            </div>
-            <div className="step-info" style={{ textAlign: 'center' }}>
-              <h4 className="step-title">Listo para Servir</h4>
-              <p className="step-desc">
-                {orderStatus === 'ready' || orderStatus === 'delivered' ? 'Preparación completada. En breve saldrá hacia tu mesa.' : 'Esperando que termine la preparación.'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="waiting-order-summary" style={{ marginBottom: '20px' }}>
-          <div className="summary-title" style={{ textAlign: 'center' }}>Mesa {mesa} - Resumen de Pedido</div>
-          {Array.isArray(currentOrder?.items) && currentOrder.items.map((item: any, idx: number) => (
-            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-              <span>{item.quantity}x {item.product?.name || item.name || 'Platillo'}</span>
-              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>${((Number(item.unitPrice) || 0) * (item.quantity || 1)).toFixed(2)}</span>
-            </div>
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '10px', fontWeight: 700 }}>
-            <span>Total</span>
-            <span style={{ color: 'var(--accent)' }}>${Number(currentOrder?.totalAmount || 0).toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* MODAL CARD A PANTALLA COMPLETA EN MÓVIL AL ESTAR DESPACHADO */}
-        {orderDispatched && (
-          <div 
-            className="animate-fade-in" 
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              width: '100%', 
-              height: '100%', 
-              zIndex: 9999, 
-              background: 'rgba(9, 11, 16, 0.9)', 
-              backdropFilter: 'blur(16px)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              padding: '20px' 
-            }}
-          >
-            <div 
-              className="animate-scale-up" 
-              style={{ 
-                background: 'var(--bg-secondary)', 
-                border: '1px solid var(--border-color)', 
-                borderRadius: '24px', 
-                width: '100%', 
-                maxWidth: '400px', 
-                padding: '32px 24px', 
-                textAlign: 'center', 
-                boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '24px',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              {readyToCollect ? (
-                <>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: `2px solid ${accentColor}`, animation: 'pulseBorder 2s infinite' }}>
-                    📢
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0', textAlign: 'center' }}>¡Retira en Barra!</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
-                      Tu pedido está listo y esperándote en la barra. Por favor acércate a recogerlo.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="action-btn-large"
-                    style={{ background: 'var(--accent)', color: getContrastColor(accentColor), width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', border: 'none', borderRadius: 'var(--radius-md)' }}
-                    onClick={() => {
-                      setReadyToCollect(false);
-                      setOrderDispatched(false);
-                      setCurrentOrder(null);
-                      setOrderStatus('');
-                    }}
-                  >
-                    Entendido, Ya lo retiré ✓
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: `2px solid ${accentColor}`, animation: 'pulseBorder 2s infinite' }}>
-                    🍽️
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0', textAlign: 'center' }}>¡Pedido en Camino!</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
-                      Tu comida ha sido despachada por la cocina y un mesero la está llevando a tu mesa en este momento.
-                    </p>
-                  </div>
-                  <button 
-                    className="action-btn-large pulse-button" 
-                    style={{ background: 'var(--accent)', color: getContrastColor(accentColor), width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', border: 'none', borderRadius: 'var(--radius-md)' }}
-                    onClick={() => {
-                      setOrderDispatched(false);
-                      setCurrentOrder(null);
-                      setOrderStatus('');
-                    }}
-                  >
-                    ¡Excelente, gracias!
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Si el cliente tiene una orden enviada y activa, se muestra el estado en el mismo DOM estable
+  const isOrderActive = currentOrder && (orderStatus === 'pending' || orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered');
 
   const activeCategoryData = menu.find(c => c.id === activeCategory);
   const filteredProducts = activeCategoryData ? getFilteredProducts(activeCategoryData) : [];
 
   return (
     <div className="menu-container animate-fade-in">
+      {isOrderActive ? (
+        <div key="order-tracking-view" className="waiting-screen" onClick={playClientAlert /* Desbloquear AudioContext al tocar cualquier parte */}>
+          <h2 className="waiting-title" style={{ marginBottom: '8px' }}>Seguimiento de tu Orden</h2>
+          <p className="waiting-subtitle" style={{ marginBottom: '24px' }}>Mesa {mesa} • Sincronizado en tiempo real</p>
+
+          {/* Tracking Vertical Premium */}
+          <div className="order-tracking-vertical">
+            {/* Paso 1: Recibido */}
+            <div className={`tracking-step ${orderStatus === 'pending' ? 'active' : ''} ${(orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered') ? 'completed' : ''}`}>
+              <div className="step-node">
+                <span>{orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered' ? '✓' : '🛎️'}</span>
+              </div>
+              <div className="step-info">
+                <h4 className="step-title">Orden Recibida</h4>
+                <p className="step-desc">
+                  {orderStatus === 'pending' ? 'Recibida en cocina. Preparando ingredientes...' : 'Orden recibida y asignada con éxito.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Conector 1 */}
+            <div className={`tracking-connector ${(orderStatus === 'preparing' || orderStatus === 'ready' || orderStatus === 'delivered') ? 'filled' : ''}`}></div>
+
+            {/* Paso 2: Preparando */}
+            <div className={`tracking-step ${orderStatus === 'preparing' ? 'active' : ''} ${(orderStatus === 'ready' || orderStatus === 'delivered') ? 'completed' : ''}`}>
+              <div className="step-node">
+                <span>{orderStatus === 'ready' || orderStatus === 'delivered' ? '✓' : '🍳'}</span>
+              </div>
+              <div className="step-info">
+                <h4 className="step-title">En Preparación</h4>
+                <p className="step-desc">
+                  {orderStatus === 'pending' && 'En fila para iniciar preparación.'}
+                  {orderStatus === 'preparing' && 'El chef está cocinando tu orden al fuego.'}
+                  {(orderStatus === 'ready' || orderStatus === 'delivered') && 'Cocción finalizada a la perfección.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Conector 2 */}
+            <div className={`tracking-connector ${(orderStatus === 'ready' || orderStatus === 'delivered') ? 'filled' : ''}`}></div>
+
+            {/* Paso 3: Listo */}
+            <div className={`tracking-step status-ready-active ${(orderStatus === 'ready' || orderStatus === 'delivered') ? 'active' : ''}`}>
+              <div className="step-node">
+                <span>{orderStatus === 'ready' || orderStatus === 'delivered' ? '🍽️' : '🛎️'}</span>
+              </div>
+              <div className="step-info" style={{ textAlign: 'center' }}>
+                <h4 className="step-title">Listo para Servir</h4>
+                <p className="step-desc">
+                  {orderStatus === 'ready' || orderStatus === 'delivered' ? 'Preparación completada. En breve saldrá hacia tu mesa.' : 'Esperando que termine la preparación.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="waiting-order-summary" style={{ marginBottom: '20px' }}>
+            <div className="summary-title" style={{ textAlign: 'center' }}>Mesa {mesa} - Resumen de Pedido</div>
+            {Array.isArray(currentOrder?.items) && currentOrder.items.map((item: any, idx: number) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                <span>{item.quantity}x {item.product?.name || item.name || 'Platillo'}</span>
+                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>${((Number(item.unitPrice) || 0) * (item.quantity || 1)).toFixed(2)}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '10px', fontWeight: 700 }}>
+              <span>Total</span>
+              <span style={{ color: 'var(--accent)' }}>${Number(currentOrder?.totalAmount || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* MODAL CARD A PANTALLA COMPLETA EN MÓVIL AL ESTAR DESPACHADO */}
+          {orderDispatched && (
+            <div 
+              className="animate-fade-in" 
+              style={{ 
+                position: 'fixed', 
+                top: 0, 
+                left: 0, 
+                width: '100%', 
+                height: '100%', 
+                zIndex: 9999, 
+                background: 'rgba(9, 11, 16, 0.9)', 
+                backdropFilter: 'blur(16px)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                padding: '20px' 
+              }}
+            >
+              <div 
+                className="animate-scale-up" 
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '24px', 
+                  width: '100%', 
+                  maxWidth: '400px', 
+                  padding: '32px 24px', 
+                  textAlign: 'center', 
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '24px',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {readyToCollect ? (
+                  <>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: `2px solid ${accentColor}`, animation: 'pulseBorder 2s infinite' }}>
+                      📢
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0', textAlign: 'center' }}>¡Retira en Barra!</h3>
+                      <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
+                        Tu pedido está listo y esperándote en la barra. Por favor acércate a recogerlo.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="action-btn-large"
+                      style={{ background: 'var(--accent)', color: getContrastColor(accentColor), width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', border: 'none', borderRadius: 'var(--radius-md)' }}
+                      onClick={() => {
+                        setReadyToCollect(false);
+                        setOrderDispatched(false);
+                        setCurrentOrder(null);
+                        setOrderStatus('');
+                      }}
+                    >
+                      Entendido, Ya lo retiré ✓
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', border: `2px solid ${accentColor}`, animation: 'pulseBorder 2s infinite' }}>
+                      🍽️
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: '0 0 10px 0', textAlign: 'center' }}>¡Pedido en Camino!</h3>
+                      <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
+                        Tu comida ha sido despachada por la cocina y un mesero la está llevando a tu mesa en este momento.
+                      </p>
+                    </div>
+                    <button 
+                      className="action-btn-large pulse-button" 
+                      style={{ background: 'var(--accent)', color: getContrastColor(accentColor), width: '100%', fontWeight: '700', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', border: 'none', borderRadius: 'var(--radius-md)' }}
+                      onClick={() => {
+                        setOrderDispatched(false);
+                        setCurrentOrder(null);
+                        setOrderStatus('');
+                      }}
+                    >
+                      ¡Excelente, gracias!
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div key="menu-display-view">
       {/* Header Fijo */}
       <header className="menu-header glass">
         <div className="brand-section">
@@ -1155,9 +1155,9 @@ export const Menu: React.FC = () => {
                 </p>
               </div>
             )}
-          </div>
         </div>
       )}
+      
       {/* Modal de Consentimiento de Notificaciones (Popup Minimalista de un clic) */}
       {showNotificationModal && (
         <div key="modal-notification-permission" className="product-modal-overlay animate-fade-in" style={{ zIndex: 9999 }}>
