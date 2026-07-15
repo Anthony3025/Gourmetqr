@@ -1155,6 +1155,9 @@ export const Menu: React.FC = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
         </div>
       )}
       
